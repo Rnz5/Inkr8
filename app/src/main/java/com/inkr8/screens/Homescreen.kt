@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.inkr8.R
 import com.inkr8.data.Words
+import com.inkr8.data.getRandomWordExcluding
+import com.inkr8.data.vocabWords
 import com.inkr8.ui.theme.Inkr8Theme
 import kotlinx.coroutines.delay
 import kotlin.random.Random
@@ -43,66 +45,14 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit
 ) {
 
-    val vocabWords = listOf(
-        Words(
-            "1",
-            "leeway",
-            "noun",
-            "The sideways drift of a ship or boat to leeward of the desired course",
-            "/ˈliˌweɪ/",
-            "By manœuvring the sheets it could be made to keep the boat moving and reduce leeway.",
-            "common"
-        ),
-        Words(
-            "2",
-            "shorting",
-            "noun",
-            "The action of short",
-            "/ˈʃɔrdɪŋ/",
-            "The shorting for thy summer fruits and thy harvest is fallen.",
-            "common"
-        ),
-        Words(
-            "3",
-            "bulletproof",
-            "verb",
-            "To make (something) bulletproof",
-            "/ˈbʊlətˌpruf/",
-            "To bulletproof your legal arguments, use the most reliable source for determining case validity.",
-            "common"
-        ),
-        Words(
-            "4",
-            "causalism",
-            "noun",
-            "Any theory or approach ascribing particular importance to causes or causal relationships in understanding the nature of something.",
-            "/ˈkɔzəˌlɪzəm/",
-            "The doctrine of a motiveless volition would be only causalism.",
-            "common"
-        ),
-        Words(
-            "5",
-            "checkmated",
-            "adj",
-            "that has been placed in a position in which success, victory, etc., are impossible; thwarted, obstructed, or conclusively defeated.",
-            "/ˈtʃɛkˌmeɪdᵻd/",
-            "Her smile vanished as, deliberately, he swept pieces from the board to leave it bare but for her checkmated king.",
-            "common"
-        ),
-    )
 
-    var i by remember { mutableIntStateOf(Random.nextInt(vocabWords.size)) }
+    var currentWord by remember { mutableStateOf(vocabWords[Random.nextInt(vocabWords.size)]) }
     var showSentence by remember { mutableStateOf(false) }
-    val currentWord = vocabWords[i]
 
     LaunchedEffect(Unit) {
         while (true) {
             delay(60000L)
-            var index = i
-            do {
-                index = Random.nextInt(vocabWords.size)
-            } while (index == i)
-            i = index
+            currentWord = getRandomWordExcluding(currentWord.id)
             showSentence = false
         }
     }

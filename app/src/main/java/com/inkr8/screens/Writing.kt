@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -26,7 +29,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.inkr8.data.Words
+import com.inkr8.data.getRandomWords
 import com.inkr8.ui.theme.Inkr8Theme
+import kotlinx.coroutines.selects.select
+
+
+@Composable
+fun WordButton(word: Words, onClick: () -> Unit) { //i am a freaking genius omg
+    Button(onClick = onClick) {
+        Text(word.word) 
+    }
+}
 @Composable
 fun Writing(
     submissions: List<String>,
@@ -34,9 +48,17 @@ fun Writing(
     onNavigateBack: () -> Unit,
 ) {
     var userText by remember { mutableStateOf("") }
+    val selectedWords = remember { getRandomWords(4) }
+    val requiredWords = selectedWords.map { it.word }
+
+
+    fun containsAllWords(text: String, requiredWords: List<String>): Boolean {
+        val wordsInText = text.lowercase().split("\\W+".toRegex())
+        return requiredWords.all { word -> wordsInText.contains(word.lowercase()) }
+    }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
@@ -51,33 +73,14 @@ fun Writing(
         Spacer(modifier = Modifier.height(24.dp))
 
         Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ){
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ){
-                Button(
-                    onClick = {},
-                ){
-                    Text("word1")
-                }
-                Button(
-                    onClick = {},
-                ){
-                    Text("word2")
-                }
-                Button(
-                    onClick = {},
-                ){
-                    Text("word3")
-                }
-                Button(
-                    onClick = {},
-                ){
-                    Text("word4")
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(selectedWords) { word -> WordButton(word = word, onClick = {})
                 }
             }
 
@@ -125,15 +128,17 @@ fun Writing(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
+
+                val canSubmit = userText.isNotBlank() && containsAllWords(userText, requiredWords)
                 Button(
                     onClick = {
-                        if (userText.isNotBlank()) {
+                        if (canSubmit){
                             onAddSubmission(userText)
                             userText = ""
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = userText.isNotBlank()
+                    enabled = canSubmit
                 ) {
                     Text("Submit")
                 }
