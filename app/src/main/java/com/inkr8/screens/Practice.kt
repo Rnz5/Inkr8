@@ -22,14 +22,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.inkr8.R
+import com.inkr8.data.Gamemode
+import com.inkr8.data.OnTopicWriting
+import com.inkr8.data.getRandomThemeAndTopic
+import com.inkr8.data.standardWriting
 import com.inkr8.ui.theme.Inkr8Theme
 
 @Composable
 fun Practice(
     onNavigateBack: () -> Unit,
-    onNavigateToWriting: () -> Unit,
+    onNavigateToWriting: (Gamemode) -> Unit,
     onNavigateToProfile: () -> Unit
-) {
+){
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
@@ -96,7 +100,7 @@ fun Practice(
                 horizontalAlignment = Alignment.CenterHorizontally
             ){
                 Button(
-                    onClick = onNavigateToWriting,
+                    onClick = {onNavigateToWriting(standardWriting)},
                     modifier = Modifier.fillMaxWidth(),
                 ){
                     Text(
@@ -106,7 +110,7 @@ fun Practice(
                         )
                 }
                 Text(
-                    text = "Write a 150 words long paragraph using 4 special words.",
+                    text = "Write a maximum 150 words long paragraph using 4 random words.",
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(4.dp)
                 )
@@ -121,8 +125,9 @@ fun Practice(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ){
+                val (theme, topic) = getRandomThemeAndTopic()
                 Button(
-                    onClick = onNavigateToWriting,
+                    onClick = {onNavigateToWriting(OnTopicWriting(theme = theme, topic = topic))},
                     modifier = Modifier.fillMaxWidth(),
                 ){
                     Text(
@@ -132,7 +137,7 @@ fun Practice(
                         )
                 }
                 Text(
-                    text = "Write a 200 words long paragraph using 4 special words of a special topic.",
+                    text = "Write a maximum 200 words long paragraph about a topic using 2 random words.",
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(4.dp)
                 )

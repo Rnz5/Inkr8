@@ -9,10 +9,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -29,33 +29,92 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.inkr8.data.Gamemode
+import com.inkr8.data.OnTopicWriting
+import com.inkr8.data.Submissions
+import com.inkr8.data.Theme
+import com.inkr8.data.Topic
 import com.inkr8.data.Words
 import com.inkr8.data.getRandomWords
+import com.inkr8.data.someThemes
+import com.inkr8.data.someTopics
+import com.inkr8.data.standardWriting
+import com.inkr8.data.standardWriting.themeId
+import com.inkr8.data.standardWriting.topicId
 import com.inkr8.ui.theme.Inkr8Theme
-import kotlinx.coroutines.selects.select
-
 
 @Composable
-fun WordButton(word: Words, onClick: () -> Unit) { //i am a freaking genius omg
-    Button(onClick = onClick) {
-        Text(word.word) 
+fun WordButton(word: Words, used: Boolean, onClick: () -> Unit) { //i am a freaking genius omg
+    Button(
+        onClick = onClick,
+        colors = if (used) {
+            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        } else {
+            ButtonDefaults.buttonColors()
+        }
+    ) {
+        Text(word.word)
     }
 }
 @Composable
 fun Writing(
+    gamemode: Gamemode,
     submissions: List<String>,
     onAddSubmission: (String) -> Unit,
     onNavigateBack: () -> Unit,
 ) {
-    var userText by remember { mutableStateOf("") }
-    val selectedWords = remember { getRandomWords(4) }
-    val requiredWords = selectedWords.map { it.word }
 
+    var userText by remember { mutableStateOf("") }
+
+    val selectedWords = remember(gamemode) {
+        if ((gamemode.requiredWords ?: 0) > 0) {
+            getRandomWords(gamemode.requiredWords!!)
+        } else {
+            emptyList()
+        }
+    }
 
     fun containsAllWords(text: String, requiredWords: List<String>): Boolean {
         val wordsInText = text.lowercase().split("\\W+".toRegex())
         return requiredWords.all { word -> wordsInText.contains(word.lowercase()) }
     }
+
+    val canSubmit = remember(userText, selectedWords, gamemode) {
+        if (userText.isBlank()) false
+        else {
+            val wordCount = userText.split("\\s+".toRegex()).size
+
+            val requiredWordStrings = selectedWords.map { it.word }
+
+            val hasRequiredWords = if ((gamemode.requiredWords ?: 0) > 0) {
+                containsAllWords(userText, requiredWordStrings)
+            } else {
+                true
+            }
+
+            val meetsMinWords = gamemode.minimunWords?.let { wordCount >= it } ?: true
+
+            val meetsMaxWords = gamemode.maximunWords?.let { wordCount <= it } ?: true
+
+            hasRequiredWords && meetsMinWords && meetsMaxWords
+        }
+    }
+
+    fun createSubmission(userText: String, selectedWords: List<String>, gamemode: Gamemode, score: Int, topic: Topic, theme: Theme){
+        Submissions(
+            id = 1,
+            userId = 1,
+            content = userText,
+            wordCount = userText.split("\\s+".toRegex()).size,
+            characterCount = userText.length,
+            score = 1,
+            wordsUsed = selectedWords,
+            gamemode = gamemode,
+            topicId = topic.id,
+            themeId = theme.id
+        ) 
+    }
+
 
     Column(
         modifier = Modifier.fillMaxSize().padding(8.dp),
@@ -72,37 +131,59 @@ fun Writing(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ){
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(selectedWords) { word -> WordButton(word = word, onClick = {})
-                }
-            }
+        if (selectedWords.isNotEmpty()){
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ){
 
+                LazyRow(
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(4.dp)
+                ) {
+
+                    items(selectedWords) { word -> val isUsed = userText.lowercase().contains(word.word.lowercase())
+                        WordButton(word = word, used = isUsed, onClick = {})
+                    }
+                }
+
+            }
         }
+
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ) {
+        ){
+
             Column(
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "Write Something",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
+
+
+                if (gamemode is OnTopicWriting) {
+                    Text(
+                        text = "Theme: ${gamemode.theme.name}"
+                    )
+                    Text(
+                        text = "Topic: ${gamemode.topic.name}",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }else{
+                    Text(
+                        text = "Write something",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
 
                 OutlinedTextField(
                     value = userText,
@@ -128,19 +209,30 @@ fun Writing(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-
-                val canSubmit = userText.isNotBlank() && containsAllWords(userText, requiredWords)
                 Button(
                     onClick = {
-                        if (canSubmit){
+                        if (canSubmit) {
                             onAddSubmission(userText)
                             userText = ""
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = canSubmit
+                    enabled = canSubmit,
+                    colors = if (canSubmit) {
+                        ButtonDefaults.buttonColors()
+                    } else {
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
                 ) {
-                    Text("Submit")
+                    Text(if (canSubmit){
+                        "Submit"
+                    } else{
+                        "Missing Requirements"
+                    }
+                    )
                 }
             }
         }
@@ -152,6 +244,7 @@ fun Writing(
 fun WritingPreview() {
     Inkr8Theme {
         Writing(
+            gamemode = standardWriting,
             submissions = listOf(),
             onAddSubmission = {},
             onNavigateBack = {},

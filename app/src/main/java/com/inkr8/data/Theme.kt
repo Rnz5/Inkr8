@@ -1,9 +1,9 @@
 package com.inkr8.data
 
-data class Topic(
+data class Theme(
     val id: Int,
-    val themeId: Int,
     val name: String = "",
     val description: String = "",
     val difficulty: String = ""
+
 )

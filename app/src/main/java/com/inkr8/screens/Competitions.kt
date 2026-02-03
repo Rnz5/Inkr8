@@ -22,12 +22,16 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.inkr8.R
+import com.inkr8.data.Gamemode
+import com.inkr8.data.OnTopicWriting
+import com.inkr8.data.getRandomThemeAndTopic
+import com.inkr8.data.standardWriting
 import com.inkr8.ui.theme.Inkr8Theme
 
 @Composable
 fun Competitions(
     onNavigateBack: () -> Unit,
-    onNavigateToWriting: () -> Unit,
+    onNavigateToWriting: (Gamemode) -> Unit,
     onNavigateToProfile: () -> Unit
 ) {
 
@@ -96,7 +100,7 @@ fun Competitions(
                 horizontalAlignment = Alignment.CenterHorizontally
             ){
                 Button(
-                    onClick = onNavigateToWriting,
+                    onClick = { onNavigateToWriting(standardWriting) },
                     modifier = Modifier.fillMaxWidth(),
                 ){
                     Text(
@@ -121,8 +125,9 @@ fun Competitions(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ){
+                val (theme, topic) = getRandomThemeAndTopic()
                 Button(
-                    onClick = onNavigateToWriting,
+                    onClick = {onNavigateToWriting(OnTopicWriting(theme = theme, topic = topic))},
                     modifier = Modifier.fillMaxWidth(),
                 ){
                     Text(

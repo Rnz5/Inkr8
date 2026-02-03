@@ -9,6 +9,8 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import com.inkr8.data.Gamemode
+import com.inkr8.data.standardWriting
 import com.inkr8.screens.Competitions
 import com.inkr8.screens.HomeScreen
 import com.inkr8.screens.Practice
@@ -23,6 +25,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             Inkr8Theme {
+                var currentGamemode by remember { mutableStateOf<Gamemode?>(null) }
                 val userSubmits = remember { mutableStateListOf<String>() }
                 var currentScreen by remember { mutableStateOf(Screen.home) }
 
@@ -34,15 +37,20 @@ class MainActivity : ComponentActivity() {
                     )
                     Screen.practice -> Practice(
                         onNavigateBack = { currentScreen = Screen.home },
-                        onNavigateToWriting = { currentScreen = Screen.writing },
+                        onNavigateToWriting = { gamemode ->
+                            currentGamemode = gamemode
+                            currentScreen = Screen.writing },
                         onNavigateToProfile = { currentScreen = Screen.profile }
                     )
-                    Screen.competitions -> Competitions(
+                    Screen.competitions -> Practice(
                         onNavigateBack = { currentScreen = Screen.home },
-                        onNavigateToWriting = { currentScreen = Screen.writing },
+                        onNavigateToWriting = { gamemode ->
+                            currentGamemode = gamemode
+                            currentScreen = Screen.writing },
                         onNavigateToProfile = { currentScreen = Screen.profile }
                     )
                     Screen.writing -> Writing(
+                        gamemode = currentGamemode ?: standardWriting,
                         submissions = userSubmits,
                         onAddSubmission = { text -> userSubmits.add(text) },
                         onNavigateBack = { currentScreen = Screen.home }
