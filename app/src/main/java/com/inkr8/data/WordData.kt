@@ -11,7 +11,7 @@ val vocabWords = listOf(
         "The sideways drift of a ship or boat to leeward of the desired course",
         "/ˈliˌweɪ/",
         "By manœuvring the sheets it could be made to keep the boat moving and reduce leeway.",
-        "common"
+        "Common"
     ),
     Words(
         1,
@@ -20,7 +20,7 @@ val vocabWords = listOf(
         "The action of short",
         "/ˈʃɔrdɪŋ/",
         "The shorting for thy summer fruits and thy harvest is fallen.",
-        "common"
+        "Common"
     ),
     Words(
         2,
@@ -29,7 +29,7 @@ val vocabWords = listOf(
         "To make (something) bulletproof",
         "/ˈbʊlətˌpruf/",
         "To bulletproof your legal arguments, use the most reliable source for determining case validity.",
-        "common"
+        "Common"
     ),
     Words(
         3,
@@ -38,7 +38,7 @@ val vocabWords = listOf(
         "Any theory or approach ascribing particular importance to causes or causal relationships in understanding the nature of something.",
         "/ˈkɔzəˌlɪzəm/",
         "The doctrine of a motiveless volition would be only causalism.",
-        "common"
+        "Rare"
     ),
     Words(
         4,
@@ -47,7 +47,7 @@ val vocabWords = listOf(
         "that has been placed in a position in which success, victory, etc., are impossible; thwarted, obstructed, or conclusively defeated.",
         "/ˈtʃɛkˌmeɪdᵻd/",
         "Her smile vanished as, deliberately, he swept pieces from the board to leave it bare but for her checkmated king.",
-        "common"
+        "Common"
     ),
 )
 

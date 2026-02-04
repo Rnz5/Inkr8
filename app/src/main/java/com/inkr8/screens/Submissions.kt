@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -23,11 +24,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.inkr8.data.Submissions
 import com.inkr8.ui.theme.Inkr8Theme
+import com.inkr8.utils.TimeUtils.formatTime
 
 @Composable
 fun Submissions(
-    submissions: List<String>,
+    submissions: List<Submissions>,
     onNavigateToProfile: () -> Unit
 ) {
     Column(
@@ -46,7 +49,7 @@ fun Submissions(
         Spacer(modifier = Modifier.height(24.dp))
 
         Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
@@ -82,19 +85,40 @@ fun Submissions(
                                 Column(
                                     modifier = Modifier.padding(16.dp)
                                 ) {
-                                    val words = submission.split("\\s+".toRegex())
-                                    val wordCount = words.size
-                                    val previewText = if (submission.length > 100) {
-                                        submission.take(100) + "..."
+                                    val previewText = if (submission.content.length > 100) {
+                                        submission.content.take(100) + "..."
                                     } else {
-                                        submission
+                                        submission.content
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(70.dp)
+                                    ){
+                                        Text(
+                                            text = submission.gamemode.name,
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            text = "Score: ${submission.score}%",
+                                            fontSize = 18.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.Red
+                                        )
                                     }
 
                                     Text(
-                                        text = "Words: $wordCount | Characters: ${submission.length}",
-                                        fontSize = 12.sp,
+                                        text = formatTime(submission.timestamp),
+                                        fontSize = 14.sp,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    )
+
+                                    Text(
+                                        text = "Words: ${submission.wordCount} | Characters: ${submission.characterCount}",
+                                        fontSize = 14.sp,
                                         color = Color.Gray,
-                                        modifier = Modifier.padding(bottom = 8.dp)
                                     )
 
                                     Text(

@@ -8,7 +8,7 @@ data class Submissions(
     val wordCount: Int = 0,
     val characterCount: Int = 0,
     val score: Int = 0,
-    val wordsUsed: List<String> = emptyList(),
+    val wordsUsed: List<Words> = emptyList(),
     val gamemode: Gamemode,
     val topicId: Int? = null,
     val themeId: Int? = null

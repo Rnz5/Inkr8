@@ -32,15 +32,9 @@ import androidx.compose.ui.unit.sp
 import com.inkr8.data.Gamemode
 import com.inkr8.data.OnTopicWriting
 import com.inkr8.data.Submissions
-import com.inkr8.data.Theme
-import com.inkr8.data.Topic
 import com.inkr8.data.Words
 import com.inkr8.data.getRandomWords
-import com.inkr8.data.someThemes
-import com.inkr8.data.someTopics
 import com.inkr8.data.standardWriting
-import com.inkr8.data.standardWriting.themeId
-import com.inkr8.data.standardWriting.topicId
 import com.inkr8.ui.theme.Inkr8Theme
 
 @Composable
@@ -59,8 +53,8 @@ fun WordButton(word: Words, used: Boolean, onClick: () -> Unit) { //i am a freak
 @Composable
 fun Writing(
     gamemode: Gamemode,
-    submissions: List<String>,
-    onAddSubmission: (String) -> Unit,
+    submissions: List<Submissions>,
+    onAddSubmission: (Submissions) -> Unit,
     onNavigateBack: () -> Unit,
 ) {
 
@@ -100,21 +94,21 @@ fun Writing(
         }
     }
 
-    fun createSubmission(userText: String, selectedWords: List<String>, gamemode: Gamemode, score: Int, topic: Topic, theme: Theme){
-        Submissions(
-            id = 1,
-            userId = 1,
-            content = userText,
-            wordCount = userText.split("\\s+".toRegex()).size,
-            characterCount = userText.length,
+    fun createSubmission(id: Int, userId: Int, content: String, wordCount: Int, charactedCount: Int, score: Int, wordsUsed: List<Words>, gamemode: Gamemode, topicId: Int?, themeId: Int?): Submissions{
+        return Submissions(
+            id = id,
+            userId = userId,
+            content = content,
+            timestamp = System.currentTimeMillis(),
+            wordCount = wordCount,
+            characterCount = charactedCount,
             score = 1,
-            wordsUsed = selectedWords,
+            wordsUsed = wordsUsed,
             gamemode = gamemode,
-            topicId = topic.id,
-            themeId = theme.id
-        ) 
+            topicId = if (gamemode is OnTopicWriting) gamemode.topic.id else null,
+            themeId = if (gamemode is OnTopicWriting) gamemode.theme.id else null
+        )
     }
-
 
     Column(
         modifier = Modifier.fillMaxSize().padding(8.dp),
@@ -212,7 +206,34 @@ fun Writing(
                 Button(
                     onClick = {
                         if (canSubmit) {
-                            onAddSubmission(userText)
+                            val submission = if (gamemode is OnTopicWriting) {
+                                createSubmission(
+                                    id = 1,
+                                    userId = 1,
+                                    content = userText,
+                                    wordCount = userText.split("\\s+".toRegex()).size,
+                                    charactedCount = userText.length,
+                                    score = 1,
+                                    wordsUsed = selectedWords,
+                                    gamemode = gamemode,
+                                    topicId = gamemode.topic.id,
+                                    themeId = gamemode.theme.id
+                                )
+                            } else {
+                                createSubmission(
+                                    id = 1,
+                                    userId = 1,
+                                    content = userText,
+                                    wordCount = userText.split("\\s+".toRegex()).size,
+                                    charactedCount = userText.length,
+                                    score = 1,
+                                    wordsUsed = selectedWords,
+                                    gamemode = gamemode,
+                                    topicId = null,
+                                    themeId = null
+                                )
+                            }
+                            onAddSubmission(submission)
                             userText = ""
                         }
                     },

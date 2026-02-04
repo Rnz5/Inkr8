@@ -1,10 +1,10 @@
 package com.inkr8.data
 
 data class Users(
-    val id: String = "",
+    val id: Int,
     val name: String = "placeholder",
     val email: String? = null,
-    val currency: Int = 1000,
+    val merit: Int = 1000,
     val rank: String = "rank-placeholder",
     val elo: Int = 0,
     val profileImageURL: String = "",

@@ -10,8 +10,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.inkr8.data.Gamemode
+import com.inkr8.data.Submissions
 import com.inkr8.data.standardWriting
-import com.inkr8.screens.Competitions
 import com.inkr8.screens.HomeScreen
 import com.inkr8.screens.Practice
 import com.inkr8.screens.Profile
@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             Inkr8Theme {
                 var currentGamemode by remember { mutableStateOf<Gamemode?>(null) }
-                val userSubmits = remember { mutableStateListOf<String>() }
+                val userSubmits = remember { mutableStateListOf<Submissions>() }
                 var currentScreen by remember { mutableStateOf(Screen.home) }
 
                 when(currentScreen) {

@@ -137,7 +137,7 @@ fun HomeScreen(
                     modifier = Modifier.padding(top = 2.dp)
                 )
                 Text(
-                    text = "(${currentWord.type}) | rarity",
+                    text = "(${currentWord.type}) | ${currentWord.rarity}",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.padding(top = 2.dp)
