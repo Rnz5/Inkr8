@@ -31,10 +31,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.inkr8.data.Gamemode
 import com.inkr8.data.OnTopicWriting
+import com.inkr8.data.StandardWriting
 import com.inkr8.data.Submissions
 import com.inkr8.data.Words
 import com.inkr8.data.getRandomWords
-import com.inkr8.data.standardWriting
+import com.inkr8.evaluation.SubmissionFactory
 import com.inkr8.ui.theme.Inkr8Theme
 
 @Composable
@@ -53,7 +54,6 @@ fun WordButton(word: Words, used: Boolean, onClick: () -> Unit) { //i am a freak
 @Composable
 fun Writing(
     gamemode: Gamemode,
-    submissions: List<Submissions>,
     onAddSubmission: (Submissions) -> Unit,
     onNavigateBack: () -> Unit,
 ) {
@@ -68,46 +68,16 @@ fun Writing(
         }
     }
 
-    fun containsAllWords(text: String, requiredWords: List<String>): Boolean {
-        val wordsInText = text.lowercase().split("\\W+".toRegex())
-        return requiredWords.all { word -> wordsInText.contains(word.lowercase()) }
-    }
-
     val canSubmit = remember(userText, selectedWords, gamemode) {
         if (userText.isBlank()) false
         else {
             val wordCount = userText.split("\\s+".toRegex()).size
 
-            val requiredWordStrings = selectedWords.map { it.word }
+            val meetsMinWords = gamemode.minWords?.let { wordCount >= it } ?: true
+            val meetsMaxWords = gamemode.maxWords?.let { wordCount <= it } ?: true
 
-            val hasRequiredWords = if ((gamemode.requiredWords ?: 0) > 0) {
-                containsAllWords(userText, requiredWordStrings)
-            } else {
-                true
-            }
-
-            val meetsMinWords = gamemode.minimunWords?.let { wordCount >= it } ?: true
-
-            val meetsMaxWords = gamemode.maximunWords?.let { wordCount <= it } ?: true
-
-            hasRequiredWords && meetsMinWords && meetsMaxWords
+            meetsMinWords && meetsMaxWords
         }
-    }
-
-    fun createSubmission(id: Int, userId: Int, content: String, wordCount: Int, charactedCount: Int, score: Int, wordsUsed: List<Words>, gamemode: Gamemode, topicId: Int?, themeId: Int?): Submissions{
-        return Submissions(
-            id = id,
-            userId = userId,
-            content = content,
-            timestamp = System.currentTimeMillis(),
-            wordCount = wordCount,
-            characterCount = charactedCount,
-            score = 1,
-            wordsUsed = wordsUsed,
-            gamemode = gamemode,
-            topicId = if (gamemode is OnTopicWriting) gamemode.topic.id else null,
-            themeId = if (gamemode is OnTopicWriting) gamemode.theme.id else null
-        )
     }
 
     Column(
@@ -206,33 +176,7 @@ fun Writing(
                 Button(
                     onClick = {
                         if (canSubmit) {
-                            val submission = if (gamemode is OnTopicWriting) {
-                                createSubmission(
-                                    id = 1,
-                                    userId = 1,
-                                    content = userText,
-                                    wordCount = userText.split("\\s+".toRegex()).size,
-                                    charactedCount = userText.length,
-                                    score = 1,
-                                    wordsUsed = selectedWords,
-                                    gamemode = gamemode,
-                                    topicId = gamemode.topic.id,
-                                    themeId = gamemode.theme.id
-                                )
-                            } else {
-                                createSubmission(
-                                    id = 1,
-                                    userId = 1,
-                                    content = userText,
-                                    wordCount = userText.split("\\s+".toRegex()).size,
-                                    charactedCount = userText.length,
-                                    score = 1,
-                                    wordsUsed = selectedWords,
-                                    gamemode = gamemode,
-                                    topicId = null,
-                                    themeId = null
-                                )
-                            }
+                            val submission = SubmissionFactory.create(content = userText, gamemode = gamemode, wordsUsed = selectedWords)
                             onAddSubmission(submission)
                             userText = ""
                         }
@@ -265,8 +209,7 @@ fun Writing(
 fun WritingPreview() {
     Inkr8Theme {
         Writing(
-            gamemode = standardWriting,
-            submissions = listOf(),
+            gamemode = StandardWriting,
             onAddSubmission = {},
             onNavigateBack = {},
         )

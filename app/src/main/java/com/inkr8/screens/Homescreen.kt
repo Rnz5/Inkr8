@@ -49,6 +49,7 @@ fun HomeScreen(
     var currentWord by remember { mutableStateOf(vocabWords[Random.nextInt(vocabWords.size)]) }
     var showSentence by remember { mutableStateOf(false) }
 
+
     LaunchedEffect(Unit) {
         while (true) {
             delay(60000L)
@@ -83,7 +84,7 @@ fun HomeScreen(
                     )
 
                     Text(
-                        text = "Currency placeholder",
+                        text = "merit",
                         modifier = Modifier.padding(4.dp)
                     )
                 }
@@ -130,6 +131,7 @@ fun HomeScreen(
                     fontSize = 32.sp,
                     modifier = Modifier.padding(4.dp)
                 )
+
                 Text(
                     text = currentWord.pronunciation,
                     fontSize = 16.sp,

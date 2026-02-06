@@ -25,7 +25,7 @@ import com.inkr8.R
 import com.inkr8.data.Gamemode
 import com.inkr8.data.OnTopicWriting
 import com.inkr8.data.getRandomThemeAndTopic
-import com.inkr8.data.standardWriting
+import com.inkr8.data.StandardWriting
 import com.inkr8.ui.theme.Inkr8Theme
 
 @Composable
@@ -100,7 +100,7 @@ fun Competitions(
                 horizontalAlignment = Alignment.CenterHorizontally
             ){
                 Button(
-                    onClick = { onNavigateToWriting(standardWriting) },
+                    onClick = { onNavigateToWriting(StandardWriting) },
                     modifier = Modifier.fillMaxWidth(),
                 ){
                     Text(

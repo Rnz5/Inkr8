@@ -1,6 +1,7 @@
 package com.inkr8.data
 
 sealed class Gamemode(
+    open val isCompetitive: Boolean,
     open val name: String,
     open val description: String,
     open val requiredWords: Int?,
@@ -12,7 +13,8 @@ sealed class Gamemode(
 )
 
 
-object standardWriting: Gamemode(
+object StandardWriting: Gamemode(
+    isCompetitive = false,
     name = "Standard - Writing",
     description = "Write a 150-word paragraph using 4 random words",
     requiredWords = 4,
@@ -25,6 +27,7 @@ object standardWriting: Gamemode(
 
 
 data class OnTopicWriting(val theme: Theme, val topic: Topic) : Gamemode(
+    isCompetitive = false,
     name = "On-Topic Writing",
     description = "Write a 200-word paragraph about a topic",
     requiredWords = 2,
