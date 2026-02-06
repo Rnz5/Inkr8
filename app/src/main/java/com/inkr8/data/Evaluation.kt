@@ -4,6 +4,6 @@ data class Evaluation(
     val submissionId: Int,
     val finalScore: Double,
     val feedback: String,
-    val isExpanded: Boolean,
+    var isExpanded: Boolean,
     val resultStatus: SubmissionStatus
 )
