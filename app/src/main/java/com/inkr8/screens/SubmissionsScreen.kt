@@ -32,6 +32,7 @@ fun Submissions(
     submissions: List<Submissions>,
     onNavigateToProfile: () -> Unit
 ) {
+
     Column(
         modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -100,7 +101,7 @@ fun Submissions(
                                             fontWeight = FontWeight.Bold
                                         )
                                         Text(
-                                            text = "Score: 1%",
+                                            text = "Score: ${submission.evaluation?.finalScore}%",
                                             fontSize = 18.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = Color.Red

@@ -5,5 +5,6 @@ data class Evaluation(
     val finalScore: Double,
     val feedback: String,
     var isExpanded: Boolean,
-    val resultStatus: SubmissionStatus
+    val resultStatus: SubmissionStatus,
+    val meritEarned: Int = 0,
 )

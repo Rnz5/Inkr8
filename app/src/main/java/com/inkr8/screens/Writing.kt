@@ -56,6 +56,7 @@ fun Writing(
     gamemode: Gamemode,
     onAddSubmission: (Submissions) -> Unit,
     onNavigateBack: () -> Unit,
+    onNavigateToResults: () -> Unit
 ) {
 
     var userText by remember { mutableStateOf("") }
@@ -179,6 +180,7 @@ fun Writing(
                             val submission = SubmissionFactory.create(content = userText, gamemode = gamemode, wordsUsed = selectedWords)
                             onAddSubmission(submission)
                             userText = ""
+                            onNavigateToResults()
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -212,6 +214,7 @@ fun WritingPreview() {
             gamemode = StandardWriting,
             onAddSubmission = {},
             onNavigateBack = {},
+            onNavigateToResults = {}
         )
     }
 }

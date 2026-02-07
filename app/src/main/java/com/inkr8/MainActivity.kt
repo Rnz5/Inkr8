@@ -65,7 +65,8 @@ class MainActivity : ComponentActivity() {
                             lastResult = evaluated
                             currentScreen = Screen.results
                         },
-                        onNavigateBack = { currentScreen = Screen.home }
+                        onNavigateBack = { currentScreen = Screen.home },
+                        onNavigateToResults = { currentScreen = Screen.results }
                     )
                     Screen.submissions -> Submissions(
                         submissions = userSubmits,

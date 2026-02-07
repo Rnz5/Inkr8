@@ -74,7 +74,7 @@ val fakeSubmission = Submissions(
             "Rare"
         ),),
     gamemode = StandardWriting,
-    evaluation = Evaluation(submissionId = 1, finalScore = 87.56, feedback = "While the summary accurately delineates the Hegelian triad, it remains descriptive rather than analytical, lacking a critical examination of the dialectical transitions between these stages. It is a technically sound overview but requires more depth regarding the \"negation\" that drives the movement of Geist to earn a top-tier grade.", isExpanded = false, resultStatus = SubmissionStatus.EVALUATED),
+    evaluation = Evaluation(submissionId = 1, finalScore = 87.56, feedback = "While the summary accurately delineates the Hegelian triad, it remains descriptive rather than analytical, lacking a critical examination of the dialectical transitions between these stages. It is a technically sound overview but requires more depth regarding the \"negation\" that drives the movement of Geist to earn a top-tier grade.", isExpanded = false, resultStatus = SubmissionStatus.EVALUATED, meritEarned = 5),
     status = SubmissionStatus.EVALUATED
 )
 @Composable
@@ -118,9 +118,9 @@ fun Results(
                         modifier = Modifier.padding(10.dp),
                         color = Color.Red
                     )
-
+                    val formatScore = "%.2f".format(submission.evaluation.finalScore)
                     Text(
-                        text = "${submission.evaluation.finalScore}/100",
+                        text = "${formatScore}%",
                         textAlign = TextAlign.End,
                         fontSize = 24.sp,
                         modifier = Modifier.padding(10.dp),
@@ -182,8 +182,8 @@ fun Results(
                 horizontalArrangement = Arrangement.Center
             ){
                 Text(
-                    text = "Merit Earned: 1236", // i need the merit calculator
-                    modifier = Modifier.padding(4.dp),
+                    text = "Merit Earned: ${submission.evaluation.meritEarned}",
+                    modifier = Modifier.padding(12.dp),
                     fontSize = 20.sp,
                 )
             }

@@ -10,7 +10,7 @@ class FakeEvaluator: SubmissionEvaluator {
         val createdEvaluation = Evaluation(
             submissionId = 1,
             finalScore = Random.nextDouble()*100,
-            feedback = "you did great but let me tell you that R8 might have done it better noob",
+            feedback = "you did great but let me tell you that R8 might have done it better noob, so yeah go and try to find a job silly, but i am already doing that, shut up you are just an insane person probably also squizo",
             isExpanded = false,
             resultStatus = SubmissionStatus.EVALUATED
         )
