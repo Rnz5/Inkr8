@@ -40,6 +40,7 @@ object MeritCalculator {
             gamemodeMerit = 1.1
         }
 
+
         return ((baseMerit + wordBonusMerit) * gamemodeMerit).toInt()
     }
 

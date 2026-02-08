@@ -53,14 +53,14 @@ val vocabWords = listOf(
 
 val someThemes =  listOf(
     Theme(
-        id = 1,
+        id = "1",
         name = "Philosophy",
         description = "The systematic study of fundamental questions about existence",
         difficulty = "Hard"
 
     ),
     Theme(
-        id = 2,
+        id = "2",
         name = "Technology",
         description = "The application of scientific knowledge, skills, methods, and processes to achieve practical goals.",
         difficulty = "easy"
@@ -70,28 +70,28 @@ val someThemes =  listOf(
 
 val someTopics = listOf(
     Topic(
-        id = 1,
+        id = "1",
         themeId = someThemes[0].id,
         name = "Philosophy of the spirit",
         description = "Designates the construction of a philosophical system on the remote pattern of the rationalism",
         difficulty = "Tricky"
     ),
     Topic(
-        id = 2,
+        id = "2",
         themeId = someThemes[0].id,
         name = "Stoicism",
         description = "An ancient Greco-Roman philosophy focused on achieving eudaimonia (happiness/flourishing) and ataraxia (serenity)",
         difficulty = "Tricky"
     ),
     Topic(
-        id = 3,
+        id = "3",
         themeId = someThemes[1].id,
         name = "Machine Learning",
         description = "Develops algorithms capable of learning patterns from data to make predictions or decisions without being explicitly programmed",
         difficulty = "Medium"
     ),
     Topic(
-        id = 4,
+        id = "4",
         themeId = someThemes[1].id,
         name = "Smartwatches",
         description = "Wearable, wrist-mounted computers with touchscreen interfaces that, in addition to telling time, function as extensions of smartphones",
@@ -117,7 +117,7 @@ fun getRandomTheme(): Theme {
     return someThemes[Random.nextInt(someThemes.size)]
 }
 
-fun getRandomTopicFromTheme(themeId: Int): Topic {
+fun getRandomTopicFromTheme(themeId: String): Topic {
     val topicsInTheme = someTopics.filter { it.themeId == themeId }
     return topicsInTheme[Random.nextInt(topicsInTheme.size)]
 }

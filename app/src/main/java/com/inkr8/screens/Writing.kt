@@ -62,8 +62,9 @@ fun Writing(
     var userText by remember { mutableStateOf("") }
 
     val selectedWords = remember(gamemode) {
-        if ((gamemode.requiredWords ?: 0) > 0) {
-            getRandomWords(gamemode.requiredWords!!)
+        val required = gamemode.requiredWords ?: 0
+        if (required > 0) {
+            getRandomWords(required).take(required)
         } else {
             emptyList()
         }
@@ -177,8 +178,8 @@ fun Writing(
                 Button(
                     onClick = {
                         if (canSubmit) {
-                            val submission = SubmissionFactory.create(content = userText, gamemode = gamemode, wordsUsed = selectedWords)
-                            onAddSubmission(submission)
+                            val submission = SubmissionFactory.create(content = userText, gamemode = gamemode, wordsUsed = selectedWords.filter {userText.lowercase().contains(it.word.lowercase())}) //pain
+                             onAddSubmission(submission)
                             userText = ""
                             onNavigateToResults()
                         }

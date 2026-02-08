@@ -100,8 +100,9 @@ fun Submissions(
                                             fontSize = 18.sp,
                                             fontWeight = FontWeight.Bold
                                         )
+                                        val formatScore = "%.2f".format(submission.evaluation?.finalScore)
                                         Text(
-                                            text = "Score: ${submission.evaluation?.finalScore}%",
+                                            text = "Score: ${formatScore}%",
                                             fontSize = 18.sp,
                                             fontWeight = FontWeight.Bold,
                                             color = Color.Red

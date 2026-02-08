@@ -8,8 +8,8 @@ sealed class Gamemode(
     open val timeLimit: Int?,
     open val minWords: Int?,
     open val maxWords: Int?,
-    open val topicId: Int?,
-    open val themeId: Int?
+    open val topicId: String?,
+    open val themeId: String?
 )
 
 

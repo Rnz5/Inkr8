@@ -4,13 +4,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.inkr8.data.Gamemode
-import com.inkr8.data.Submissions
 import com.inkr8.data.StandardWriting
 import com.inkr8.evaluation.FakeEvaluator
 import com.inkr8.evaluation.SubmissionProcessor
@@ -22,19 +22,32 @@ import com.inkr8.screens.Results
 import com.inkr8.screens.Submissions
 import com.inkr8.screens.Writing
 import com.inkr8.ui.theme.Inkr8Theme
+import com.inkr8.data.Submissions
+import com.inkr8.repository.FirestoreSubmissionRepository
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            var lastResult by remember { mutableStateOf<Submissions?>(null) }
+
+            var userId by remember { mutableStateOf<String?>(null) }
+
+            LaunchedEffect(Unit) {
+                AuthManager.ensureSignedIn { uid -> userId = uid }
+            }
+
+            if (userId == null) {
+                Text("Signing in… lol")
+                return@setContent
+            }
+
+            val submissionRepository = remember(userId) { FirestoreSubmissionRepository(userId!!) }
             val submissionProcessor = remember { SubmissionProcessor(FakeEvaluator()) }
 
 
             Inkr8Theme {
                 var currentGamemode by remember { mutableStateOf<Gamemode?>(null) }
-                val userSubmits = remember { mutableStateListOf<Submissions>() }
                 var currentScreen by remember { mutableStateOf(Screen.home) }
 
                 when(currentScreen) {
@@ -60,27 +73,58 @@ class MainActivity : ComponentActivity() {
                     )
                     Screen.writing -> Writing(
                         gamemode = currentGamemode ?: StandardWriting,
-                        onAddSubmission = { submission -> val evaluated = submissionProcessor.process(submission)
-                            userSubmits.add(evaluated)
-                            lastResult = evaluated
-                            currentScreen = Screen.results
+                        onAddSubmission = { submission ->
+                            val finalSubmission = submissionProcessor.process(submission)
+
+                            submissionRepository.addSubmission(submission = finalSubmission,
+                                onSuccess = { currentScreen = Screen.results },
+                                onError = { e -> e.printStackTrace() }
+                            )
                         },
                         onNavigateBack = { currentScreen = Screen.home },
                         onNavigateToResults = { currentScreen = Screen.results }
                     )
-                    Screen.submissions -> Submissions(
-                        submissions = userSubmits,
-                        onNavigateToProfile = { currentScreen = Screen.profile }
-                    )
+                    Screen.submissions -> {
+                        var submissions by remember { mutableStateOf<List<Submissions>>(emptyList()) }
+
+                        androidx.compose.runtime.LaunchedEffect(Unit) {
+                            submissionRepository.getAllSubmissions(
+                                onSuccess = { submissions = it },
+                                onError = { e -> e.printStackTrace()
+                                    submissions = emptyList()
+                                }
+                            )
+                        }
+
+                        Submissions(
+                            submissions = submissions,
+                            onNavigateToProfile = { currentScreen = Screen.profile }
+                        )
+                    }
                     Screen.profile -> Profile(
                         onNavigateBack = { currentScreen = Screen.home },
                         onNavigateToSubmissions = { currentScreen = Screen.submissions }
                     )
-                    Screen.results -> Results(
-                        submission = lastResult!!,
-                        onNavigateBack = { currentScreen = Screen.home },
-                        onNavigateToPractice = { currentScreen = Screen.practice }
-                    )
+                    Screen.results -> {
+                        var lastSubmission by remember { mutableStateOf<Submissions?>(null) }
+
+                        androidx.compose.runtime.LaunchedEffect(Unit) {
+                            submissionRepository.getLastSubmission(
+                                onSuccess = { submission -> lastSubmission = submission },
+                                onError = { e -> e.printStackTrace()
+                                    lastSubmission = null
+                                }
+                            )
+                        }
+
+                        if (lastSubmission != null) {
+                            Results(
+                                submission = lastSubmission!!,
+                                onNavigateBack = { currentScreen = Screen.home },
+                                onNavigateToPractice = { currentScreen = Screen.practice }
+                            )
+                        }
+                    }
 
                 }
             }
