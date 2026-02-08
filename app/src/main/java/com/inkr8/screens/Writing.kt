@@ -33,6 +33,7 @@ import com.inkr8.data.Gamemode
 import com.inkr8.data.OnTopicWriting
 import com.inkr8.data.StandardWriting
 import com.inkr8.data.Submissions
+import com.inkr8.data.Users
 import com.inkr8.data.Words
 import com.inkr8.data.getRandomWords
 import com.inkr8.evaluation.SubmissionFactory
@@ -53,6 +54,7 @@ fun WordButton(word: Words, used: Boolean, onClick: () -> Unit) { //i am a freak
 }
 @Composable
 fun Writing(
+    currentUser: Users,
     gamemode: Gamemode,
     onAddSubmission: (Submissions) -> Unit,
     onNavigateBack: () -> Unit,
@@ -207,15 +209,15 @@ fun Writing(
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun WritingPreview() {
-    Inkr8Theme {
-        Writing(
-            gamemode = StandardWriting,
-            onAddSubmission = {},
-            onNavigateBack = {},
-            onNavigateToResults = {}
-        )
-    }
-}
+//@Preview(showBackground = true, showSystemUi = true)
+//@Composable
+//fun WritingPreview() {
+//    Inkr8Theme {
+//        Writing(
+//            gamemode = StandardWriting,
+//            onAddSubmission = {},
+//            onNavigateBack = {},
+//            onNavigateToResults = {}
+//        )
+//    }
+//}
