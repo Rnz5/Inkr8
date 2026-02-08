@@ -27,6 +27,7 @@ import com.inkr8.screens.Writing
 import com.inkr8.ui.theme.Inkr8Theme
 import com.inkr8.data.Submissions
 import com.inkr8.data.Users
+import com.inkr8.evaluation.SubmissionFactory
 import com.inkr8.repository.FirestoreSubmissionRepository
 import com.inkr8.repository.UserRepository
 
@@ -58,9 +59,7 @@ class MainActivity : ComponentActivity() {
                 return@setContent
             }
 
-            val submissionRepository = remember(currentUser!!.id) {
-                FirestoreSubmissionRepository(currentUser!!.id)
-            }
+            val submissionRepository = remember { FirestoreSubmissionRepository() }
             val submissionProcessor = remember { SubmissionProcessor(FakeEvaluator()) }
 
 
@@ -91,12 +90,17 @@ class MainActivity : ComponentActivity() {
                     )
                     Screen.writing -> Writing(
                         gamemode = currentGamemode ?: StandardWriting,
-                        onAddSubmission = { submission ->
-                            val finalSubmission = submissionProcessor.process(submission)
+                        onAddSubmission = { submission: Submissions ->
+                            val submissionWithAuthor = submission.copy(
+                                authorId = currentUser!!.id
+                            )
 
-                            submissionRepository.addSubmission(submission = finalSubmission,
+                            val finalSubmission = submissionProcessor.process(submissionWithAuthor)
+
+                            submissionRepository.addSubmission(
+                                submission = finalSubmission,
                                 onSuccess = { currentScreen = Screen.results },
-                                onError = { e -> e.printStackTrace() }
+                                onError = { e: Exception -> e.printStackTrace() }
                             )
                         },
                         onNavigateBack = { currentScreen = Screen.home },

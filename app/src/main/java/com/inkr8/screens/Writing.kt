@@ -54,7 +54,6 @@ fun WordButton(word: Words, used: Boolean, onClick: () -> Unit) { //i am a freak
 }
 @Composable
 fun Writing(
-    currentUser: Users,
     gamemode: Gamemode,
     onAddSubmission: (Submissions) -> Unit,
     onNavigateBack: () -> Unit,
@@ -180,8 +179,13 @@ fun Writing(
                 Button(
                     onClick = {
                         if (canSubmit) {
-                            val submission = SubmissionFactory.create(content = userText, gamemode = gamemode, wordsUsed = selectedWords.filter {userText.lowercase().contains(it.word.lowercase())}) //pain
-                             onAddSubmission(submission)
+                            val submission = SubmissionFactory.create(
+                                content = userText,
+                                gamemode = "gamemode",
+                                wordsUsed = selectedWords.filter { userText.lowercase().contains(it.word.lowercase()) },
+
+                            )
+                            onAddSubmission(submission)
                             userText = ""
                             onNavigateToResults()
                         }
@@ -209,15 +213,15 @@ fun Writing(
     }
 }
 
-//@Preview(showBackground = true, showSystemUi = true)
-//@Composable
-//fun WritingPreview() {
-//    Inkr8Theme {
-//        Writing(
-//            gamemode = StandardWriting,
-//            onAddSubmission = {},
-//            onNavigateBack = {},
-//            onNavigateToResults = {}
-//        )
-//    }
-//}
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun WritingPreview() {
+    Inkr8Theme {
+        Writing(
+            gamemode = StandardWriting,
+            onAddSubmission = {},
+            onNavigateBack = {},
+            onNavigateToResults = {}
+        )
+    }
+}
