@@ -1,19 +1,21 @@
 package com.inkr8
 
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 
 object AuthManager {
-    val auth = FirebaseAuth.getInstance()
+    private val auth = FirebaseAuth.getInstance()
 
-    fun ensureSignedIn(onReady: (String) -> Unit) {
+    fun ensureSignedIn(onReady: (FirebaseUser) -> Unit) {
         val currentUser = auth.currentUser
         if (currentUser != null) {
-            onReady(currentUser.uid)
+            onReady(currentUser)
         } else {
             auth.signInAnonymously()
-                .addOnSuccessListener {
-                    onReady(it.user!!.uid)
+                .addOnSuccessListener { result ->
+                    onReady(result.user!!)
                 }
         }
     }
 }
+

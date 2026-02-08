@@ -4,12 +4,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import com.inkr8.data.Gamemode
 import com.inkr8.data.StandardWriting
 import com.inkr8.evaluation.FakeEvaluator
@@ -23,7 +26,9 @@ import com.inkr8.screens.Submissions
 import com.inkr8.screens.Writing
 import com.inkr8.ui.theme.Inkr8Theme
 import com.inkr8.data.Submissions
+import com.inkr8.data.Users
 import com.inkr8.repository.FirestoreSubmissionRepository
+import com.inkr8.repository.UserRepository
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,18 +36,31 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
 
-            var userId by remember { mutableStateOf<String?>(null) }
+            val userRepository = remember { UserRepository() }
+            var currentUser by remember { mutableStateOf<Users?>(null) }
 
             LaunchedEffect(Unit) {
-                AuthManager.ensureSignedIn { uid -> userId = uid }
+                AuthManager.ensureSignedIn { firebaseUser ->
+                    userRepository.ensureUserExists(
+                        uid = firebaseUser.uid,
+                        name = firebaseUser.displayName ?: "User${firebaseUser.uid.take(4)}",
+                        email = firebaseUser.email
+                    ) { user ->
+                        currentUser = user
+                    }
+                }
             }
 
-            if (userId == null) {
-                Text("Signing in… lol")
+            if (currentUser == null) {
+                Box(modifier = Modifier.fillMaxSize()) {
+
+                }
                 return@setContent
             }
 
-            val submissionRepository = remember(userId) { FirestoreSubmissionRepository(userId!!) }
+            val submissionRepository = remember(currentUser!!.id) {
+                FirestoreSubmissionRepository(currentUser!!.id)
+            }
             val submissionProcessor = remember { SubmissionProcessor(FakeEvaluator()) }
 
 
