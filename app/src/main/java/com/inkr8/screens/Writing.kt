@@ -132,7 +132,6 @@ fun Writing(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
-
                 if (gamemode is OnTopicWriting) {
                     Text(
                         text = "Theme: ${gamemode.theme.name}"
@@ -181,9 +180,15 @@ fun Writing(
                         if (canSubmit) {
                             val submission = SubmissionFactory.create(
                                 content = userText,
-                                gamemode = "gamemode",
-                                wordsUsed = selectedWords.filter { userText.lowercase().contains(it.word.lowercase()) },
-
+                                gamemode = when (gamemode) {
+                                    is StandardWriting -> "STANDARD"
+                                    is OnTopicWriting -> "ON_TOPIC"
+                                },
+                                wordsUsed = selectedWords.filter {
+                                    userText.lowercase().contains(it.word.lowercase())
+                                },
+                                topicId = if (gamemode is OnTopicWriting) gamemode.topic.id else null,
+                                themeId = if (gamemode is OnTopicWriting) gamemode.theme.id else null
                             )
                             onAddSubmission(submission)
                             userText = ""

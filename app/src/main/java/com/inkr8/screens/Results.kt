@@ -35,7 +35,7 @@ import com.inkr8.data.Words
 import com.inkr8.ui.theme.Inkr8Theme
 val fakeSubmission = Submissions(
     id = "1",
-    userId = "1",
+    authorId = "1",
     content = "The philosophy of spirit, famously championed by G.W.F. Hegel, examines the evolution of consciousness from individual awareness to a collective, universal realization. In this context, \"spirit\" (or Geist) represents the unity of thought and reality, bridging the gap between the subjective mind and the external world. Hegel’s system structures this journey into three stages: subjective spirit, involving individual psychology; objective spirit, encompassing law and societal ethics; and absolute spirit, which reaches its peak through art, religion, and philosophy.",
     wordCount = 150,
     characterCount = 610,
@@ -73,7 +73,7 @@ val fakeSubmission = Submissions(
             "The doctrine of a motiveless volition would be only causalism.",
             "Rare"
         ),),
-    gamemode = StandardWriting,
+    gamemode = "",
     evaluation = Evaluation(submissionId = "1", finalScore = 87.56, feedback = "While the summary accurately delineates the Hegelian triad, it remains descriptive rather than analytical, lacking a critical examination of the dialectical transitions between these stages. It is a technically sound overview but requires more depth regarding the \"negation\" that drives the movement of Geist to earn a top-tier grade.", isExpanded = false, resultStatus = SubmissionStatus.EVALUATED, meritEarned = 5),
     status = SubmissionStatus.EVALUATED
 )

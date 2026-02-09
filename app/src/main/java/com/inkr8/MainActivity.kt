@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.inkr8.data.Gamemode
 import com.inkr8.data.StandardWriting
@@ -41,20 +42,20 @@ class MainActivity : ComponentActivity() {
             var currentUser by remember { mutableStateOf<Users?>(null) }
 
             LaunchedEffect(Unit) {
-                AuthManager.ensureSignedIn { firebaseUser ->
-                    userRepository.ensureUserExists(
+                AuthManager.ensureSignedIn { firebaseUser -> userRepository.ensureUserExists(
                         uid = firebaseUser.uid,
                         name = firebaseUser.displayName ?: "User${firebaseUser.uid.take(4)}",
                         email = firebaseUser.email
-                    ) { user ->
-                        currentUser = user
-                    }
+                    ) { user -> currentUser = user }
                 }
             }
 
             if (currentUser == null) {
-                Box(modifier = Modifier.fillMaxSize()) {
-
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("Signing in...")
                 }
                 return@setContent
             }

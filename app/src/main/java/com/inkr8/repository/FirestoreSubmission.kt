@@ -6,7 +6,7 @@ import com.inkr8.data.Words
 
 data class FirestoreSubmission(
     val id: String = "",
-    val userId: String = "",
+    val authorId: String = "",
     val content: String = "",
     val timestamp: Long = 0L,
     val wordCount: Int = 0,

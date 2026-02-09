@@ -12,6 +12,8 @@ object SubmissionFactory {
         content: String,
         gamemode: String,
         wordsUsed: List<Words>,
+        topicId: String? = null,
+        themeId: String? = null,
         authorId: String = ""
     ): Submissions {
         val wordCount = content.split("\\s+".toRegex()).size
@@ -23,11 +25,11 @@ object SubmissionFactory {
             wordCount = wordCount,
             characterCount = content.length,
             wordsUsed = wordsUsed,
-            gamemode = "gamemode",
-            topicId = (gamemode as? OnTopicWriting)?.topic?.id as String?,
-            themeId = (gamemode as? OnTopicWriting)?.theme?.id as String?,
+            gamemode = gamemode,
+            topicId = topicId,
+            themeId = themeId,
             evaluation = null,
-            status = SubmissionStatus.PENDING,
+            status = SubmissionStatus.PENDING
         )
     }
 }

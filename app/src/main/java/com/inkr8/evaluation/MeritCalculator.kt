@@ -33,7 +33,7 @@ object MeritCalculator {
             baseMerit = 0.0
         }
 
-        wordBonusMerit = (submission.wordCount / 30) * 50.toDouble()
+        wordBonusMerit = (submission.wordCount / 30) * 50.toDouble() //for each 30 words == 50 merit
         if(submission.gamemode is OnTopicWriting){
             gamemodeMerit = 1.3
         }else{

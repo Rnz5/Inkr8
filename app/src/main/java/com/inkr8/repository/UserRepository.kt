@@ -33,7 +33,14 @@ class UserRepository(
                         .addOnSuccessListener {
                             onReady(newUser)
                         }
+                        .addOnFailureListener { e ->
+                            e.printStackTrace()
+                        }
                 }
+            }
+            .addOnFailureListener { e ->
+                e.printStackTrace()
+
             }
     }
 }

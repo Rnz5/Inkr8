@@ -96,7 +96,7 @@ fun Submissions(
                                         horizontalArrangement = Arrangement.spacedBy(70.dp)
                                     ){
                                         Text(
-                                            text = submission.gamemode.name,
+                                            text = submission.gamemode,
                                             fontSize = 18.sp,
                                             fontWeight = FontWeight.Bold
                                         )
