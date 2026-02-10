@@ -189,6 +189,7 @@ fun Writing(
                                 },
                                 topicId = if (gamemode is OnTopicWriting) gamemode.topic.id else null,
                                 themeId = if (gamemode is OnTopicWriting) gamemode.theme.id else null
+
                             )
                             onAddSubmission(submission)
                             userText = ""

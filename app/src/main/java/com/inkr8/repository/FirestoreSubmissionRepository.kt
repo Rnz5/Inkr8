@@ -7,7 +7,8 @@ import com.inkr8.mappers.toFirestore
 
 class FirestoreSubmissionRepository() {
     private val db = FirebaseFirestore.getInstance()
-    private val collection = db.collection("submissions")
+    private val submissionsCollection  = db.collection("submissions")
+    private val usersCollection = db.collection("users")
 
 
     fun addSubmission(
@@ -15,25 +16,28 @@ class FirestoreSubmissionRepository() {
         onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ) {
-        val firestoreSubmission = submission.toFirestore()
-
         if (submission.authorId.isBlank()) {
             onError(IllegalStateException("Submission authorId cannot be empty"))
             return
         }
 
-        collection
-            .document(firestoreSubmission.id)
-            .set(firestoreSubmission)
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onError(it) }
+        val firestoreSubmission = submission.toFirestore()
+
+        val submissionRef = submissionsCollection.document(firestoreSubmission.id)
+        val userRef = usersCollection.document(submission.authorId)
+
+        db.runTransaction { transaction -> transaction.set(submissionRef, firestoreSubmission)
+
+            transaction.update(userRef, "submissionsCount", com.google.firebase.firestore.FieldValue.increment(1))
+            null
+        }.addOnSuccessListener { onSuccess() }.addOnFailureListener { e -> onError(e) }
     }
 
     fun getLastSubmission(
         onSuccess: (Submissions?) -> Unit,
         onError: (Exception) -> Unit
     ) {
-        collection
+        submissionsCollection
             .orderBy("timestamp")
             .limitToLast(1)
             .get()
@@ -50,9 +54,9 @@ class FirestoreSubmissionRepository() {
         onError: (Exception) -> Unit
     ) {
         val query = if (authorId != null) {
-            collection.whereEqualTo("authorId", authorId).orderBy("timestamp")
+            submissionsCollection.whereEqualTo("authorId", authorId).orderBy("timestamp")
         } else {
-            collection.orderBy("timestamp")
+            submissionsCollection.orderBy("timestamp")
         }
 
         query.get().addOnSuccessListener { snapshot ->

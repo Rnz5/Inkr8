@@ -5,9 +5,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -21,10 +24,29 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.firestore.auth.User
 import com.inkr8.R
+import com.inkr8.data.Users
 import com.inkr8.ui.theme.Inkr8Theme
+import com.inkr8.utils.TimeUtils.formatTime
+
+val fakeUser = Users(
+    id = "UASDXAUSIASNI",
+    name = "Example User ^^",
+    email = null,
+    merit = 1000,
+    rank = "Unranked",
+    elo = 0,
+    submissionsCount = 0,
+    profileImageURL = "",
+    bannerImageURL = "",
+    achievements = emptyList(),
+    joinedDate = System.currentTimeMillis()
+)
 @Composable
 fun Profile(
+    user: Users,
+    isOwner: Boolean,
     onNavigateBack: () -> Unit,
     onNavigateToSubmissions: () -> Unit,
 ) {
@@ -48,33 +70,58 @@ fun Profile(
                 )
             }
         }
-        Spacer(modifier = Modifier.height(10.dp))
         Row(
-            modifier = Modifier.fillMaxWidth().padding(4.dp)
-        ){
-            Text(
-                text = "Username",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(4.dp)
-            )
-
-            Text(
-                text = "pronouns",
-                fontSize = 12.sp,
-                modifier = Modifier.padding(4.dp)
-            )
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
 
             Column(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                horizontalAlignment = Alignment.End
-            ){
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(
-                    text = "Rank",
-                    modifier = Modifier.padding(4.dp)
+                    text = user.submissionsCount.toString(),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+                Text(
+                    text = "Submissions",
+                    fontSize = 10.sp
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(2f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = user.name,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Joined ${formatTime(user.joinedDate)}",
+                    fontSize = 10.sp
+                )
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = user.elo.toString(),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp
+                )
+                Text(
+                    text = user.rank,
+                    fontSize = 10.sp
                 )
             }
         }
+
+
 
         Spacer(modifier = Modifier.height(30.dp))
 
@@ -117,13 +164,16 @@ fun Profile(
             Text("Work in progress")
             Spacer(modifier = Modifier.height(120.dp))
         }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(4.dp),
-            horizontalArrangement = Arrangement.Center
 
-        ){
-            Button(onClick = onNavigateToSubmissions) {
-                Text("View Submissions")
+        if(isOwner){
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(4.dp),
+                horizontalArrangement = Arrangement.Center
+
+            ){
+                Button(onClick = onNavigateToSubmissions) {
+                    Text("View Submissions")
+                }
             }
         }
     }
@@ -138,7 +188,6 @@ fun Profile(
             Text("X")
         }
     }
-
 }
 
 @Preview(showBackground = true, showSystemUi = true)
@@ -146,8 +195,10 @@ fun Profile(
 fun ProfilePreview() {
     Inkr8Theme {
         Profile(
+            user = fakeUser,
+            isOwner = true,
             onNavigateBack = {},
-            onNavigateToSubmissions = {}
+            onNavigateToSubmissions = {},
         )
     }
 }

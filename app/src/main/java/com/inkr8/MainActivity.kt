@@ -125,6 +125,8 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     Screen.profile -> Profile(
+                        user = currentUser!!,
+                        isOwner = true,
                         onNavigateBack = { currentScreen = Screen.home },
                         onNavigateToSubmissions = { currentScreen = Screen.submissions }
                     )
