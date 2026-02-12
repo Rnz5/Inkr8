@@ -5,7 +5,7 @@ import com.inkr8.data.Submissions
 
 object MeritCalculator {
 
-    fun CalculateMerit(submission: Submissions): Int {
+    fun CalculateMerit(submission: Submissions): Long {
         val evaluation = submission.evaluation ?: return 0
         val baseMerit: Double
         val wordBonusMerit: Double
@@ -41,7 +41,7 @@ object MeritCalculator {
         }
 
 
-        return ((baseMerit + wordBonusMerit) * gamemodeMerit).toInt()
+        return ((baseMerit + wordBonusMerit) * gamemodeMerit).toLong()
     }
 
 }

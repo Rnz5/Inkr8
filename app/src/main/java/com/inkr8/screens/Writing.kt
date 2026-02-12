@@ -188,12 +188,10 @@ fun Writing(
                                     userText.lowercase().contains(it.word.lowercase())
                                 },
                                 topicId = if (gamemode is OnTopicWriting) gamemode.topic.id else null,
-                                themeId = if (gamemode is OnTopicWriting) gamemode.theme.id else null
-
+                                themeId = if (gamemode is OnTopicWriting) gamemode.theme.id else null,
                             )
                             onAddSubmission(submission)
                             userText = ""
-                            onNavigateToResults()
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),

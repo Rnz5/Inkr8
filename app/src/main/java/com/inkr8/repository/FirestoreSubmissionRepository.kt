@@ -26,11 +26,33 @@ class FirestoreSubmissionRepository() {
         val submissionRef = submissionsCollection.document(firestoreSubmission.id)
         val userRef = usersCollection.document(submission.authorId)
 
-        db.runTransaction { transaction -> transaction.set(submissionRef, firestoreSubmission)
+        db.runTransaction { transaction ->
 
-            transaction.update(userRef, "submissionsCount", com.google.firebase.firestore.FieldValue.increment(1))
+            val userSnapshot = transaction.get(userRef)
+
+            val currentMerit = (userSnapshot.get("merit") as? Number)?.toLong() ?: 0L
+            val currentBestScore = (userSnapshot.get("bestScore") as? Number)?.toDouble() ?: 0.0
+            val currentSubmissions = (userSnapshot.get("submissionsCount") as? Number)?.toLong() ?: 0L
+
+            val meritEarned = submission.evaluation?.meritEarned ?: 0L
+            val newScore = submission.evaluation?.finalScore ?: 0.0
+
+            transaction.set(submissionRef, firestoreSubmission) //this is hell btw
+
+            transaction.set(userRef, mapOf(
+                "merit" to (currentMerit + meritEarned),
+                "submissionsCount" to (currentSubmissions + 1),
+                "bestScore" to maxOf(currentBestScore, newScore)
+            ), com.google.firebase.firestore.SetOptions.merge())
+
             null
-        }.addOnSuccessListener { onSuccess() }.addOnFailureListener { e -> onError(e) }
+        }
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { e ->
+                android.util.Log.e("FIRESTORE_TX", "Transaction failed", e)
+                e.printStackTrace()
+                onError(e)
+            }
     }
 
     fun getLastSubmission(

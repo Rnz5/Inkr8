@@ -13,7 +13,7 @@ class SubmissionProcessor(
             status = evaluation.resultStatus
         )
 
-        val merit = MeritCalculator.CalculateMerit(evaluatedSubmission)
+        val merit: Long = MeritCalculator.CalculateMerit(evaluatedSubmission)
 
         return evaluatedSubmission.copy(evaluation = evaluation.copy(meritEarned = merit)
         )

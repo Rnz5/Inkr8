@@ -1,6 +1,7 @@
 package com.inkr8.mappers
 
 import com.inkr8.data.*
+import com.inkr8.repository.FirestoreEvaluation
 import com.inkr8.repository.FirestoreSubmission
 
 fun FirestoreSubmission.toDomain(): Submissions {
@@ -15,7 +16,14 @@ fun FirestoreSubmission.toDomain(): Submissions {
         gamemode = gamemodeName,
         topicId = topicId,
         themeId = themeId,
-        evaluation = evaluation,
+        evaluation = evaluation?.let {
+            Evaluation(
+                submissionId = it.submissionId,
+                finalScore = it.finalScore,
+                feedback = it.feedback,
+                meritEarned = it.meritEarned
+            )
+        },
         status = status
     )
 }
@@ -32,7 +40,13 @@ fun Submissions.toFirestore(): FirestoreSubmission {
         gamemodeName = gamemode,
         topicId = topicId,
         themeId = themeId,
-        evaluation = evaluation,
+        evaluation = evaluation?.let {
+            FirestoreEvaluation(
+                finalScore = it.finalScore,
+                feedback = it.feedback,
+                meritEarned = it.meritEarned
+            )
+        },
         status = status
     )
 }

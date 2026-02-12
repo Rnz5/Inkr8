@@ -15,23 +15,44 @@ object TimeUtils {
             diff < TimeUnit.MINUTES.toMillis(1) -> "just now"
             diff < TimeUnit.HOURS.toMillis(1) -> {
                 val minutes = TimeUnit.MILLISECONDS.toMinutes(diff)
-                "${minutes}minutes ago"
+                if(minutes.toInt() == 1){
+                    "${minutes} minute ago"
+                }else{
+                    "${minutes} minutes ago"
+                }
+
             }
             diff < TimeUnit.DAYS.toMillis(1) -> {
                 val hours = TimeUnit.MILLISECONDS.toHours(diff)
-                "${hours}hours ago"
+                if(hours.toInt() == 1){
+                    "${hours} hour ago"
+                }else{
+                    "${hours} hours ago"
+                }
             }
             diff < TimeUnit.DAYS.toMillis(30) -> {
                 val days = TimeUnit.MILLISECONDS.toDays(diff)
-                "${days}days ago"
+                if(days.toInt() == 1){
+                    "${days} day ago"
+                }else{
+                    "${days} days ago"
+                }
             }
             diff < TimeUnit.DAYS.toMillis(365) -> {
                 val months = TimeUnit.MILLISECONDS.toDays(diff) / 30
-                "${months}months ago"
+                if(months.toInt() == 1){
+                    "${months} month ago"
+                }else{
+                    "${months} months ago"
+                }
             }
             else -> {
                 val years = TimeUnit.MILLISECONDS.toDays(diff) / 365
-                "${years}years ago"
+                if(years.toInt() == 1){
+                    "${years} year ago"
+                }else{
+                    "${years} years ago"
+                }
             }
         }
     }

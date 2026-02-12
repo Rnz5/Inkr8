@@ -31,15 +31,33 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.inkr8.R
+import com.inkr8.data.Users
 import com.inkr8.data.Words
 import com.inkr8.data.getRandomWordExcluding
 import com.inkr8.data.vocabWords
+import com.inkr8.economic.EconomyConfig
 import com.inkr8.ui.theme.Inkr8Theme
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
+
+val fakeUser2 = Users(
+    id = "UASDXAUSIASNI",
+    name = "Example User ^^",
+    email = null,
+    merit = 1000,
+    rank = "Unranked",
+    elo = 0,
+    submissionsCount = 0,
+    profileImageURL = "",
+    bannerImageURL = "",
+    achievements = emptyList(),
+    joinedDate = System.currentTimeMillis()
+)
+
 @Composable
 fun HomeScreen(
+    user: Users,
     onNavigateToPractice: () -> Unit,
     onNavigateToCompetitions: () -> Unit,
     onNavigateToProfile: () -> Unit
@@ -79,12 +97,12 @@ fun HomeScreen(
                     modifier = Modifier.padding(horizontal = 4.dp)
                 ){
                     Text(
-                        text = "Name placeholder",
+                        text = user.name,
                         modifier = Modifier.padding(4.dp)
                     )
 
                     Text(
-                        text = "merit",
+                        text = "Merit: ${user.merit}",
                         modifier = Modifier.padding(4.dp)
                     )
                 }
@@ -94,14 +112,15 @@ fun HomeScreen(
                     horizontalAlignment = Alignment.End
                 ){
                     Text(
-                        text = "Rank",
+                        text = user.elo.toString(),
                         modifier = Modifier.padding(4.dp)
                     )
 
                     Text(
-                        text = "INT ELO",
+                        text = user.rank,
                         modifier = Modifier.padding(4.dp)
                     )
+
                 }
 
             }
@@ -164,11 +183,14 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
-                    onClick = { showSentence = !showSentence },
+                    onClick = {showSentence = !showSentence
+                              user.merit -= EconomyConfig.show_example_sentence},
+
+                    enabled = !showSentence && user.merit >= EconomyConfig.show_example_sentence,
                     modifier = Modifier.fillMaxWidth(0.8f)
                 ){
 
-                    Text(if (showSentence) "Hide Example" else "Show Example")
+                    Text(if (showSentence) "Hide Example" else "Show Example ${EconomyConfig.show_example_sentence} Merit")
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -208,6 +230,7 @@ fun HomeScreen(
 fun HomeScreenPreview() {
     Inkr8Theme {
         HomeScreen(
+            user = fakeUser2,
             onNavigateToPractice = {},
             onNavigateToCompetitions = {},
             onNavigateToProfile = {}

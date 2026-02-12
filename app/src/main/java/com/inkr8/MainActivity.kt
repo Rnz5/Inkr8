@@ -70,6 +70,7 @@ class MainActivity : ComponentActivity() {
 
                 when(currentScreen) {
                     Screen.home -> HomeScreen(
+                        user = currentUser!!,
                         onNavigateToPractice = { currentScreen = Screen.practice },
                         onNavigateToCompetitions = { currentScreen = Screen.competitions },
                         onNavigateToProfile = { currentScreen = Screen.profile }
@@ -100,7 +101,19 @@ class MainActivity : ComponentActivity() {
 
                             submissionRepository.addSubmission(
                                 submission = finalSubmission,
-                                onSuccess = { currentScreen = Screen.results },
+                                onSuccess = {
+
+                                    val meritEarned = finalSubmission.evaluation?.meritEarned ?: 0
+                                    val newScore = finalSubmission.evaluation?.finalScore ?: 0.0
+
+                                    currentUser = currentUser!!.copy(
+                                        merit = currentUser!!.merit + meritEarned,
+                                        submissionsCount = currentUser!!.submissionsCount + 1,
+                                        bestScore = maxOf(currentUser!!.bestScore, newScore)
+                                    )
+
+                                    currentScreen = Screen.results
+                                },
                                 onError = { e: Exception -> e.printStackTrace() }
                             )
                         },

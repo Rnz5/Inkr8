@@ -13,7 +13,7 @@ fun FirestoreEvaluation.toDomain(): Evaluation {
         resultStatus = SubmissionStatus.valueOf(
             resultStatus.ifBlank { "PENDING" }
         ),
-        meritEarned = meritEarned.toInt()
+        meritEarned = meritEarned.toLong()
     )
 }
 
