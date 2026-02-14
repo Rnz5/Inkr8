@@ -1,5 +1,6 @@
 package com.inkr8
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -33,20 +34,69 @@ import com.inkr8.repository.FirestoreSubmissionRepository
 import com.inkr8.repository.UserRepository
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var googleLauncher: androidx.activity.result.ActivityResultLauncher<Intent>
+    private val userRepository = UserRepository()
+    private var currentUserState = mutableStateOf<Users?>(null)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent {
 
-            val userRepository = remember { UserRepository() }
-            var currentUser by remember { mutableStateOf<Users?>(null) }
+        AuthManager.initGoogle(this)
+
+        googleLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == RESULT_OK) {
+                AuthManager.linkWithGoogle(
+                    result.data,
+                    onSuccess = { firebaseUser ->
+
+                        userRepository.updateEmail(
+                            userId = firebaseUser.uid,
+                            email = firebaseUser.email
+                        )
+
+                        userRepository.getUserById(firebaseUser.uid) { user ->
+                            currentUserState.value = user
+                        }
+                    },
+                    onError = { it.printStackTrace() }
+                )
+            }
+        }
+        setContent {
+            var currentUser by currentUserState
+
 
             LaunchedEffect(Unit) {
-                AuthManager.ensureSignedIn { firebaseUser -> userRepository.ensureUserExists(
+
+                val firebaseUser = AuthManager.currentUser()
+
+                if (firebaseUser != null) {
+
+                    userRepository.updateEmail(
+                        userId = firebaseUser.uid,
+                        email = firebaseUser.email
+                    )
+
+                    userRepository.ensureUserExists(
                         uid = firebaseUser.uid,
                         name = firebaseUser.displayName ?: "User${firebaseUser.uid.take(4)}",
                         email = firebaseUser.email
                     ) { user -> currentUser = user }
+
+                } else {
+                    AuthManager.signInAnonymously(
+                        onSuccess = { firebaseUserAnon ->
+                            userRepository.ensureUserExists(
+                                uid = firebaseUserAnon.uid,
+                                name = "User${firebaseUserAnon.uid.take(4)}",
+                                email = null
+                            ) { user -> currentUser = user }
+                        },
+                        onError = { it.printStackTrace() }
+                    )
                 }
             }
 
@@ -76,6 +126,7 @@ class MainActivity : ComponentActivity() {
                         onNavigateToProfile = { currentScreen = Screen.profile }
                     )
                     Screen.practice -> Practice(
+                        user = currentUser!!,
                         onNavigateBack = { currentScreen = Screen.home },
                         onNavigateToWriting = { gamemode ->
                             currentGamemode = gamemode
@@ -83,6 +134,7 @@ class MainActivity : ComponentActivity() {
                         onNavigateToProfile = { currentScreen = Screen.profile }
                     )
                     Screen.competitions -> Competitions(
+                        user = currentUser!!,
                         onNavigateBack = { currentScreen = Screen.home },
                         onNavigateToWriting = { gamemode ->
                             currentGamemode = gamemode
@@ -105,6 +157,11 @@ class MainActivity : ComponentActivity() {
 
                                     val meritEarned = finalSubmission.evaluation?.meritEarned ?: 0
                                     val newScore = finalSubmission.evaluation?.finalScore ?: 0.0
+
+                                    userRepository.addMerit(
+                                        userId = currentUser!!.id,
+                                        amount = meritEarned.toLong()
+                                    )
 
                                     currentUser = currentUser!!.copy(
                                         merit = currentUser!!.merit + meritEarned,
@@ -141,7 +198,11 @@ class MainActivity : ComponentActivity() {
                         user = currentUser!!,
                         isOwner = true,
                         onNavigateBack = { currentScreen = Screen.home },
-                        onNavigateToSubmissions = { currentScreen = Screen.submissions }
+                        onNavigateToSubmissions = { currentScreen = Screen.submissions },
+                        onLinkGoogle = {
+                            val signInIntent = AuthManager.getGoogleSignInIntent()
+                            googleLauncher.launch(signInIntent)
+                        }
                     )
                     Screen.results -> {
                         var lastSubmission by remember { mutableStateOf<Submissions?>(null) }

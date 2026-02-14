@@ -1,7 +1,9 @@
 package com.inkr8.repository
 
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.inkr8.data.Users
+import com.inkr8.economic.EconomyConfig
 
 class UserRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
@@ -43,4 +45,61 @@ class UserRepository(
 
             }
     }
+
+    fun spendMerit(
+        userId: String,
+        amount: Long,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+
+        val userRef = usersCollection.document(userId)
+
+        firestore.runTransaction { transaction ->
+
+            val snapshot = transaction.get(userRef)
+            val currentMerit = (snapshot.get("merit") as? Number)?.toLong() ?: 0L
+
+            if (currentMerit < amount) {
+                throw Exception(EconomyConfig.insuffientMerit())
+            }else{
+                transaction.update(userRef, "merit", currentMerit - amount)
+            }
+            null
+        }
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onError(it) }
+    }
+
+    fun addMerit(userId: String, amount: Long) {
+        usersCollection.document(userId)
+            .update("merit", FieldValue.increment(amount))
+    }
+
+    fun getUserById(
+        userId: String,
+        onResult: (Users?) -> Unit
+    ) {
+        usersCollection.document(userId)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot.exists()) {
+                    onResult(snapshot.toObject(Users::class.java))
+                } else {
+                    onResult(null)
+                }
+            }
+            .addOnFailureListener {
+                it.printStackTrace()
+                onResult(null)
+            }
+    }
+
+    fun updateEmail(userId: String, email: String?) {
+        usersCollection.document(userId)
+            .update("email", email)
+    }
+
 }
+
+

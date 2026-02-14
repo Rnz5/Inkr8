@@ -26,10 +26,26 @@ import com.inkr8.data.Gamemode
 import com.inkr8.data.OnTopicWriting
 import com.inkr8.data.getRandomThemeAndTopic
 import com.inkr8.data.StandardWriting
+import com.inkr8.data.Users
 import com.inkr8.ui.theme.Inkr8Theme
+
+val fakeUser3 = Users(
+    id = "UASDXAUSIASNI",
+    name = "Example User ^^",
+    email = null,
+    merit = 1000,
+    rank = "Unranked",
+    elo = 0,
+    submissionsCount = 0,
+    profileImageURL = "",
+    bannerImageURL = "",
+    achievements = emptyList(),
+    joinedDate = System.currentTimeMillis()
+)
 
 @Composable
 fun Practice(
+    user: Users,
     onNavigateBack: () -> Unit,
     onNavigateToWriting: (Gamemode) -> Unit,
     onNavigateToProfile: () -> Unit
@@ -41,7 +57,7 @@ fun Practice(
     ){
         Button(
             onClick = onNavigateToProfile,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth()
         ){
             Row(
                 modifier = Modifier.fillMaxWidth().padding(4.dp),
@@ -55,12 +71,12 @@ fun Practice(
                     modifier = Modifier.padding(horizontal = 4.dp)
                 ){
                     Text(
-                        text = "Name placeholder",
+                        text = user.name,
                         modifier = Modifier.padding(4.dp)
                     )
 
                     Text(
-                        text = "Currency placeholder",
+                        text = "Merit: ${user.merit}",
                         modifier = Modifier.padding(4.dp)
                     )
                 }
@@ -70,18 +86,20 @@ fun Practice(
                     horizontalAlignment = Alignment.End
                 ){
                     Text(
-                        text = "Rank",
+                        text = user.elo.toString(),
                         modifier = Modifier.padding(4.dp)
                     )
 
                     Text(
-                        text = "INT ELO",
+                        text = user.rank,
                         modifier = Modifier.padding(4.dp)
                     )
+
                 }
 
             }
         }
+
     }
 
     Column(
@@ -172,6 +190,7 @@ fun Practice(
 fun PracticePreview() {
     Inkr8Theme {
         Practice(
+            user = fakeUser3,
             onNavigateBack = {},
             onNavigateToWriting = {},
             onNavigateToProfile = {}

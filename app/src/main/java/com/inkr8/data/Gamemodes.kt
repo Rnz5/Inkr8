@@ -1,7 +1,9 @@
 package com.inkr8.data
 
 sealed class Gamemode(
+
     open val isCompetitive: Boolean,
+
     open val name: String,
     open val description: String,
     open val requiredWords: Int?,
@@ -9,7 +11,8 @@ sealed class Gamemode(
     open val minWords: Int?,
     open val maxWords: Int?,
     open val topicId: String?,
-    open val themeId: String?
+    open val themeId: String?,
+
 )
 
 
@@ -22,7 +25,7 @@ object StandardWriting: Gamemode(
     minWords = 50,
     maxWords = 150,
     topicId = null,
-    themeId = null
+    themeId = null,
 )
 
 
@@ -35,5 +38,5 @@ data class OnTopicWriting(val theme: Theme, val topic: Topic) : Gamemode(
     minWords = 50,
     maxWords = 200,
     topicId = topic.id,
-    themeId = theme.id
+    themeId = theme.id,
 )

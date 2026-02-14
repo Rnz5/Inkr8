@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -26,10 +28,26 @@ import com.inkr8.data.Gamemode
 import com.inkr8.data.OnTopicWriting
 import com.inkr8.data.getRandomThemeAndTopic
 import com.inkr8.data.StandardWriting
+import com.inkr8.data.Users
 import com.inkr8.ui.theme.Inkr8Theme
+
+val fakeUser4 = Users(
+    id = "UASDXAUSIASNI",
+    name = "Example User ^^",
+    email = null,
+    merit = 1000,
+    rank = "Unranked",
+    elo = 0,
+    submissionsCount = 0,
+    profileImageURL = "",
+    bannerImageURL = "",
+    achievements = emptyList(),
+    joinedDate = System.currentTimeMillis()
+)
 
 @Composable
 fun Competitions(
+    user: Users,
     onNavigateBack: () -> Unit,
     onNavigateToWriting: (Gamemode) -> Unit,
     onNavigateToProfile: () -> Unit
@@ -42,7 +60,7 @@ fun Competitions(
     ){
         Button(
             onClick = onNavigateToProfile,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth()
         ){
             Row(
                 modifier = Modifier.fillMaxWidth().padding(4.dp),
@@ -56,12 +74,12 @@ fun Competitions(
                     modifier = Modifier.padding(horizontal = 4.dp)
                 ){
                     Text(
-                        text = "Name placeholder",
+                        text = user.name,
                         modifier = Modifier.padding(4.dp)
                     )
 
                     Text(
-                        text = "Currency placeholder",
+                        text = "Merit: ${user.merit}",
                         modifier = Modifier.padding(4.dp)
                     )
                 }
@@ -71,78 +89,27 @@ fun Competitions(
                     horizontalAlignment = Alignment.End
                 ){
                     Text(
-                        text = "Rank",
+                        text = user.elo.toString(),
                         modifier = Modifier.padding(4.dp)
                     )
 
                     Text(
-                        text = "INT ELO",
+                        text = user.rank,
                         modifier = Modifier.padding(4.dp)
                     )
+
                 }
 
             }
         }
+
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    LazyColumn(
+        modifier = Modifier.fillMaxWidth().height(800.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
 
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ){
-                Button(
-                    onClick = { onNavigateToWriting(StandardWriting) },
-                    modifier = Modifier.fillMaxWidth(),
-                ){
-                    Text(
-                        text = "STANDARD - Competitions",
-                        fontSize = 24.sp,
-
-                        )
-                }
-                Text(
-                    text = "Write a 150 words long paragraph using 4 special words.",
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(4.dp)
-                )
-            }
-        }
-
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp).padding(top = 100.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ){
-                val (theme, topic) = getRandomThemeAndTopic()
-                Button(
-                    onClick = {onNavigateToWriting(OnTopicWriting(theme = theme, topic = topic))},
-                    modifier = Modifier.fillMaxWidth(),
-                ){
-                    Text(
-                        text = "ON-TOPIC - Competition",
-                        fontSize = 24.sp,
-
-                        )
-                }
-                Text(
-                    text = "Write a 200 words long paragraph using 4 special words of a special topic.",
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(4.dp)
-                )
-            }
-        }
     }
 
 
@@ -173,6 +140,7 @@ fun Competitions(
 fun CompetitionsPreview() {
     Inkr8Theme {
         Competitions(
+            user = fakeUser4,
             onNavigateBack = {},
             onNavigateToWriting = {},
             onNavigateToProfile = {}

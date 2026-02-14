@@ -1,5 +1,6 @@
 package com.inkr8.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,17 +26,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.firebase.firestore.FirebaseFirestore
 import com.inkr8.R
 import com.inkr8.data.Users
 import com.inkr8.data.Words
 import com.inkr8.data.getRandomWordExcluding
 import com.inkr8.data.vocabWords
 import com.inkr8.economic.EconomyConfig
+import com.inkr8.repository.UserRepository
 import com.inkr8.ui.theme.Inkr8Theme
 import kotlinx.coroutines.delay
 import kotlin.random.Random
@@ -66,6 +70,9 @@ fun HomeScreen(
 
     var currentWord by remember { mutableStateOf(vocabWords[Random.nextInt(vocabWords.size)]) }
     var showSentence by remember { mutableStateOf(false) }
+    val userRepository = UserRepository(FirebaseFirestore.getInstance())
+    val context = LocalContext.current
+    var isSpending by remember { mutableStateOf(false) }
 
 
     LaunchedEffect(Unit) {
@@ -183,14 +190,26 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
-                    onClick = {showSentence = !showSentence
-                              user.merit -= EconomyConfig.show_example_sentence},
+                    enabled = !isSpending && !showSentence,
+                    onClick = {
+                        isSpending = true
+                        userRepository.spendMerit(
+                            userId = user.id,
+                            amount = EconomyConfig.show_example_sentence,
+                            onSuccess = {
+                                showSentence = true
+                                isSpending = false
+                            },
+                            onError = {
+                                Toast.makeText(context, EconomyConfig.insuffientMerit(), Toast.LENGTH_SHORT).show()
+                                isSpending = false
+                            }
 
-                    enabled = !showSentence && user.merit >= EconomyConfig.show_example_sentence,
-                    modifier = Modifier.fillMaxWidth(0.8f)
+                        )
+                    }
                 ){
 
-                    Text(if (showSentence) "Hide Example" else "Show Example ${EconomyConfig.show_example_sentence} Merit")
+                    Text(if (showSentence) "Example Shown" else "Show Example ${EconomyConfig.show_example_sentence} Merit")
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
