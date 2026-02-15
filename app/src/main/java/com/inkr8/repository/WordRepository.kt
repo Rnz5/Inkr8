@@ -12,13 +12,8 @@ class WordRepository(
     private val wordsCollection = firestore.collection("words")
 
     suspend fun getRandomWords(limit: Long): List<Words> {
-        val snapshot = wordsCollection
-            .whereEqualTo("isActive", true)
-            .limit(limit)
-            .get()
-            .await()
-
-        return snapshot.toObjects(Words::class.java).shuffled()
+        val snapshot = wordsCollection.whereEqualTo("isActive", true).limit(limit).get().await()
+        return snapshot.documents.mapNotNull { doc -> doc.toObject(Words::class.java)?.copy(id = doc.id) }.shuffled()
     }
 
     suspend fun getSingleRandomWord(): Words? {

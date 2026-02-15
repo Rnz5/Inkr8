@@ -13,7 +13,7 @@ class TopicRepository(
     suspend fun getRandomTopicFromTheme(themeId: String): Topic? {
         val snapshot = topicsCollection.whereEqualTo("themeId", themeId).get().await()
 
-        val topics = snapshot.toObjects(Topic::class.java)
+        val topics = snapshot.documents.mapNotNull { doc -> doc.toObject(Topic::class.java)?.copy(id = doc.id) }
 
         if (topics.isEmpty()) return null
 

@@ -163,11 +163,9 @@ class MainActivity : ComponentActivity() {
                                         amount = meritEarned.toLong()
                                     )
 
-                                    currentUser = currentUser!!.copy(
-                                        merit = currentUser!!.merit + meritEarned,
-                                        submissionsCount = currentUser!!.submissionsCount + 1,
-                                        bestScore = maxOf(currentUser!!.bestScore, newScore)
-                                    )
+                                    userRepository.getUserById(currentUser!!.id) { updatedUser ->
+                                        currentUser = updatedUser
+                                    }
 
                                     currentScreen = Screen.results
                                 },

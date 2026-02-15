@@ -12,7 +12,7 @@ class ThemeRepository(
 
     suspend fun getRandomTheme(): Theme? {
         val snapshot = themesCollection.get().await()
-        val themes = snapshot.toObjects(Theme::class.java)
+        val themes = snapshot.documents.mapNotNull { doc -> doc.toObject(Theme::class.java)?.copy(id = doc.id) }
 
         if (themes.isEmpty()) return null
 
