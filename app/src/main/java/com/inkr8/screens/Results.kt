@@ -33,50 +33,50 @@ import com.inkr8.data.SubmissionStatus
 import com.inkr8.data.Submissions
 import com.inkr8.data.Words
 import com.inkr8.ui.theme.Inkr8Theme
-val fakeSubmission = Submissions(
-    id = "1",
-    authorId = "1",
-    content = "The philosophy of spirit, famously championed by G.W.F. Hegel, examines the evolution of consciousness from individual awareness to a collective, universal realization. In this context, \"spirit\" (or Geist) represents the unity of thought and reality, bridging the gap between the subjective mind and the external world. Hegel’s system structures this journey into three stages: subjective spirit, involving individual psychology; objective spirit, encompassing law and societal ethics; and absolute spirit, which reaches its peak through art, religion, and philosophy.",
-    wordCount = 150,
-    characterCount = 610,
-    wordsUsed = listOf(Words(
-        0,
-        "leeway",
-        "noun",
-        "The sideways drift of a ship or boat to leeward of the desired course",
-        "/ˈliˌweɪ/",
-        "By manœuvring the sheets it could be made to keep the boat moving and reduce leeway.",
-        "Common"
-    ),Words(
-        1,
-        "shorting",
-        "noun",
-        "The action of short",
-        "/ˈʃɔrdɪŋ/",
-        "The shorting for thy summer fruits and thy harvest is fallen.",
-        "Common"
-    ),Words(
-        2,
-        "bulletproof",
-        "verb",
-        "To make (something) bulletproof",
-        "/ˈbʊlətˌpruf/",
-        "To bulletproof your legal arguments, use the most reliable source for determining case validity.",
-        "Common"
-    ),
-        Words(
-            3,
-            "causalism",
-            "noun",
-            "Any theory or approach ascribing particular importance to causes or causal relationships in understanding the nature of something.",
-            "/ˈkɔzəˌlɪzəm/",
-            "The doctrine of a motiveless volition would be only causalism.",
-            "Rare"
-        ),),
-    gamemode = "",
-    evaluation = Evaluation(submissionId = "1", finalScore = 87.56, feedback = "While the summary accurately delineates the Hegelian triad, it remains descriptive rather than analytical, lacking a critical examination of the dialectical transitions between these stages. It is a technically sound overview but requires more depth regarding the \"negation\" that drives the movement of Geist to earn a top-tier grade.", isExpanded = false, resultStatus = SubmissionStatus.EVALUATED, meritEarned = 5),
-    status = SubmissionStatus.EVALUATED
-)
+//val fakeSubmission = Submissions(
+//    id = "1",
+//    authorId = "1",
+//    content = "The philosophy of spirit, famously championed by G.W.F. Hegel, examines the evolution of consciousness from individual awareness to a collective, universal realization. In this context, \"spirit\" (or Geist) represents the unity of thought and reality, bridging the gap between the subjective mind and the external world. Hegel’s system structures this journey into three stages: subjective spirit, involving individual psychology; objective spirit, encompassing law and societal ethics; and absolute spirit, which reaches its peak through art, religion, and philosophy.",
+//    wordCount = 150,
+//    characterCount = 610,
+//    wordsUsed = listOf(Words(
+//        0,
+//        "leeway",
+//        "noun",
+//        "The sideways drift of a ship or boat to leeward of the desired course",
+//        "/ˈliˌweɪ/",
+//        "By manœuvring the sheets it could be made to keep the boat moving and reduce leeway.",
+//        "Common"
+//    ),Words(
+//        1,
+//        "shorting",
+//        "noun",
+//        "The action of short",
+//        "/ˈʃɔrdɪŋ/",
+//        "The shorting for thy summer fruits and thy harvest is fallen.",
+//        "Common"
+//    ),Words(
+//        2,
+//        "bulletproof",
+//        "verb",
+//        "To make (something) bulletproof",
+//        "/ˈbʊlətˌpruf/",
+//        "To bulletproof your legal arguments, use the most reliable source for determining case validity.",
+//        "Common"
+//    ),
+//        Words(
+//            3,
+//            "causalism",
+//            "noun",
+//            "Any theory or approach ascribing particular importance to causes or causal relationships in understanding the nature of something.",
+//            "/ˈkɔzəˌlɪzəm/",
+//            "The doctrine of a motiveless volition would be only causalism.",
+//            "Rare"
+//        ),),
+//    gamemode = "",
+//    evaluation = Evaluation(submissionId = "1", finalScore = 87.56, feedback = "While the summary accurately delineates the Hegelian triad, it remains descriptive rather than analytical, lacking a critical examination of the dialectical transitions between these stages. It is a technically sound overview but requires more depth regarding the \"negation\" that drives the movement of Geist to earn a top-tier grade.", isExpanded = false, resultStatus = SubmissionStatus.EVALUATED, meritEarned = 5),
+//    status = SubmissionStatus.EVALUATED
+//)
 @Composable
 fun Results(
     submission: Submissions,
@@ -212,14 +212,14 @@ fun Results(
 
 
 
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun ResultsPreview() {
-    Inkr8Theme {
-        Results(
-            submission = fakeSubmission,
-            onNavigateBack = {},
-            onNavigateToPractice = {}
-        )
-    }
-}
+//@Preview(showBackground = true, showSystemUi = true)
+//@Composable
+//fun ResultsPreview() {
+//    Inkr8Theme {
+//        Results(
+//            submission = fakeSubmission,
+//            onNavigateBack = {},
+//            onNavigateToPractice = {}
+//        )
+//    }
+//}

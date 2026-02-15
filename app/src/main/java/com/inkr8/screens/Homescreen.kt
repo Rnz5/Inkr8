@@ -36,13 +36,11 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.inkr8.R
 import com.inkr8.data.Users
 import com.inkr8.data.Words
-import com.inkr8.data.getRandomWordExcluding
-import com.inkr8.data.vocabWords
 import com.inkr8.economic.EconomyConfig
 import com.inkr8.repository.UserRepository
+import com.inkr8.repository.WordRepository
 import com.inkr8.ui.theme.Inkr8Theme
 import kotlinx.coroutines.delay
-import kotlin.random.Random
 
 
 val fakeUser2 = Users(
@@ -67,8 +65,9 @@ fun HomeScreen(
     onNavigateToProfile: () -> Unit
 ) {
 
+    val wordRepository = remember { WordRepository() }
+    var currentWord by remember { mutableStateOf<Words?>(null) }
 
-    var currentWord by remember { mutableStateOf(vocabWords[Random.nextInt(vocabWords.size)]) }
     var showSentence by remember { mutableStateOf(false) }
     val userRepository = UserRepository(FirebaseFirestore.getInstance())
     val context = LocalContext.current
@@ -76,10 +75,17 @@ fun HomeScreen(
 
 
     LaunchedEffect(Unit) {
+
+        suspend fun loadNewWord() {
+            currentWord = wordRepository.getSingleRandomWord()
+            showSentence = false
+        }
+
+        loadNewWord()
+
         while (true) {
             delay(60000L)
-            currentWord = getRandomWordExcluding(currentWord.id)
-            showSentence = false
+            loadNewWord()
         }
     }
 
@@ -152,26 +158,26 @@ fun HomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = currentWord.word,
+                    text = currentWord?.let { word -> (word.word) }.toString(),
                     textAlign = TextAlign.Center,
                     fontSize = 32.sp,
                     modifier = Modifier.padding(4.dp)
                 )
 
                 Text(
-                    text = currentWord.pronunciation,
+                    text = currentWord?.let { word -> (word.pronunciation) }.toString(),
                     fontSize = 16.sp,
                     color = Color.Gray,
                     modifier = Modifier.padding(top = 2.dp)
                 )
                 Text(
-                    text = "(${currentWord.type}) | ${currentWord.rarity}",
+                    text = "(${currentWord?.let { word -> (word.type) }.toString()}) | ${currentWord?.let { word -> (word.frequencyScore) }.toString()}",
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier.padding(top = 2.dp)
                 )
                 Text(
-                    text = currentWord.definition,
+                    text = currentWord?.let { word -> (word.definition) }.toString(),
                     fontSize = 15.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(4.dp)
@@ -180,7 +186,7 @@ fun HomeScreen(
                 if (showSentence) {
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
-                        text = "Example: ${currentWord.sentence}",
+                        text = "Example: ${currentWord?.let { word -> (word.sentence) }.toString()}",
                         fontSize = 16.sp,
                         color = Color.Gray,
                         textAlign = TextAlign.Center

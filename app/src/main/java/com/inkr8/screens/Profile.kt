@@ -29,12 +29,12 @@ import com.inkr8.utils.TimeUtils.formatTime
 
 val fakeUser = Users(
     id = "UASDXAUSIASNI",
-    name = "Example User ^^",
+    name = "Mintcake",
     email = null,
     merit = 1000,
     rank = "Unranked",
-    elo = 0,
-    submissionsCount = 0,
+    elo = 146,
+    submissionsCount = 16,
     profileImageURL = "",
     bannerImageURL = "",
     achievements = emptyList(),
@@ -56,14 +56,25 @@ fun Profile(
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ){
-
-            if(user.email == null){
-                Button(onClick = {onLinkGoogle()}) {
-                    Text("Save with Google")
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                if(isOwner){
+                    if(user.email == null){
+                        Button(onClick = {onLinkGoogle()}) {
+                            Text("Save with Google")
+                        }
+                    }
+                }
+                Button(
+                    onClick = onNavigateBack,
+                ) {
+                    Text("X")
                 }
             }
 
-            Spacer(modifier = Modifier.height(60.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Row(
                 modifier = Modifier.fillMaxWidth().padding(12.dp),
                 horizontalArrangement = Arrangement.Center
@@ -98,8 +109,12 @@ fun Profile(
                 modifier = Modifier.weight(2f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = user.name,
+                Text(//✔
+                    text = if(user.email == null){
+                        user.name
+                    }else{
+                        "${user.name} ✓"
+                    },
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -179,17 +194,6 @@ fun Profile(
                     Text("View Submissions")
                 }
             }
-        }
-    }
-
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(4.dp),
-        horizontalArrangement = Arrangement.End
-    ) {
-        Button(
-            onClick = onNavigateBack,
-        ) {
-            Text("X")
         }
     }
 }

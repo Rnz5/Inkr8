@@ -14,6 +14,11 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -24,9 +29,13 @@ import androidx.compose.ui.unit.sp
 import com.inkr8.R
 import com.inkr8.data.Gamemode
 import com.inkr8.data.OnTopicWriting
-import com.inkr8.data.getRandomThemeAndTopic
 import com.inkr8.data.StandardWriting
+import com.inkr8.data.Theme
+import com.inkr8.data.Topic
 import com.inkr8.data.Users
+import com.inkr8.repository.ThemeRepository
+import com.inkr8.repository.TopicRepository
+import com.inkr8.repository.WordRepository
 import com.inkr8.ui.theme.Inkr8Theme
 
 val fakeUser3 = Users(
@@ -50,6 +59,21 @@ fun Practice(
     onNavigateToWriting: (Gamemode) -> Unit,
     onNavigateToProfile: () -> Unit
 ){
+    val themeRepository = remember { ThemeRepository() }
+    val topicRepository = remember { TopicRepository() }
+
+    var theme by remember { mutableStateOf<Theme?>(null) }
+    var topic by remember { mutableStateOf<Topic?>(null) }
+
+    LaunchedEffect(Unit) {
+
+        theme = themeRepository.getRandomTheme()
+
+        theme?.let { selectedTheme -> topic = topicRepository.getRandomTopicFromTheme(selectedTheme.id) }
+        println("Theme: $theme")
+        println("Topic: $topic")
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
@@ -142,9 +166,12 @@ fun Practice(
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ){
-                val (theme, topic) = getRandomThemeAndTopic()
                 Button(
-                    onClick = {onNavigateToWriting(OnTopicWriting(theme = theme, topic = topic))},
+                    enabled = theme != null && topic != null,
+                    onClick = {
+                        theme?.let { t -> topic?.let { tp -> onNavigateToWriting(OnTopicWriting(t, tp)) }
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
                 ){
                     Text(

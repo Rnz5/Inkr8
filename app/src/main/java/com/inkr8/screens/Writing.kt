@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,10 +34,9 @@ import com.inkr8.data.Gamemode
 import com.inkr8.data.OnTopicWriting
 import com.inkr8.data.StandardWriting
 import com.inkr8.data.Submissions
-import com.inkr8.data.Users
 import com.inkr8.data.Words
-import com.inkr8.data.getRandomWords
 import com.inkr8.evaluation.SubmissionFactory
+import com.inkr8.repository.WordRepository
 import com.inkr8.ui.theme.Inkr8Theme
 
 @Composable
@@ -60,14 +60,17 @@ fun Writing(
     onNavigateToResults: () -> Unit
 ) {
 
+    val wordRepository = remember { WordRepository() }
+    var selectedWords by remember { mutableStateOf<List<Words>>(emptyList()) }
+
     var userText by remember { mutableStateOf("") }
 
-    val selectedWords = remember(gamemode) {
+    LaunchedEffect(gamemode) {
         val required = gamemode.requiredWords ?: 0
         if (required > 0) {
-            getRandomWords(required).take(required)
+            selectedWords = wordRepository.getRandomWords(required.toLong())
         } else {
-            emptyList()
+            selectedWords = emptyList()
         }
     }
 

@@ -25,9 +25,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.inkr8.R
 import com.inkr8.data.Gamemode
-import com.inkr8.data.OnTopicWriting
-import com.inkr8.data.getRandomThemeAndTopic
-import com.inkr8.data.StandardWriting
 import com.inkr8.data.Users
 import com.inkr8.ui.theme.Inkr8Theme
 

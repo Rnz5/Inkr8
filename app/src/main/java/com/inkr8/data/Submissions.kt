@@ -1,7 +1,5 @@
 package com.inkr8.data
 
-import com.google.firebase.firestore.auth.User
-
 data class Submissions(
     val id: String = "",
     val authorId: String = "",
