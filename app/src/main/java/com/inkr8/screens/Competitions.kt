@@ -2,8 +2,11 @@ package com.inkr8.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,120 +19,162 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.inkr8.R
 import com.inkr8.data.Gamemode
+import com.inkr8.data.OnTopicWriting
+import com.inkr8.data.StandardWriting
+import com.inkr8.data.Theme
+import com.inkr8.data.Topic
 import com.inkr8.data.Users
+import com.inkr8.economic.EconomyConfig
+import com.inkr8.economic.RankedCostCalculator
+import com.inkr8.rating.League
+import com.inkr8.rating.PantheonManager
+import com.inkr8.repository.UserRepository
 import com.inkr8.ui.theme.Inkr8Theme
+import com.inkr8.utils.UserHeaderCard
 
 val fakeUser4 = Users(
-    id = "UASDXAUSIASNI",
-    name = "Example User ^^",
-    email = null,
-    merit = 1000,
-    rank = "Unranked",
-    elo = 0,
-    submissionsCount = 0,
+    id = "USR_8492QW",
+    name = "MintCake",
+    email = "email example",
+    merit = 1275,
+    rating = 86,
+    reputation = 42,
+    bestScore = 91.4,
+    submissionsCount = 38,
     profileImageURL = "",
     bannerImageURL = "",
-    achievements = emptyList(),
-    joinedDate = System.currentTimeMillis()
+    achievements = listOf(),
+    joinedDate = System.currentTimeMillis() - 1000L * 60 * 60 * 24 * 120,
+    rankedWinStreak = 3,
+    rankedLossStreak = 0
 )
-
 @Composable
 fun Competitions(
     user: Users,
+    pantheonPosition: Int?,
     onNavigateBack: () -> Unit,
     onNavigateToWriting: (Gamemode) -> Unit,
     onNavigateToProfile: () -> Unit
 ) {
 
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ){
-        Button(
-            onClick = onNavigateToProfile,
-            modifier = Modifier.fillMaxWidth()
-        ){
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(4.dp),
-            ){
-                Image(
-                    painter = painterResource(id = R.drawable.pfpexample),
-                    contentDescription = null
-                )
+    val league = League.fromRating(user.rating)
 
-                Column(
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                ){
-                    Text(
-                        text = user.name,
-                        modifier = Modifier.padding(4.dp)
-                    )
+    val rankedGamemode = remember(user.rating) {
+        when (league) {
+            League.SCRIBE,
+            League.STYLIST -> StandardWriting
 
-                    Text(
-                        text = "Merit: ${user.merit}",
-                        modifier = Modifier.padding(4.dp)
+            else -> {
+                if ((0..1).random() == 0) {
+                    StandardWriting
+                } else {
+                    OnTopicWriting(
+                        theme = Theme("1", "Creativity"),
+                        topic = Topic("1", "The Cost of Silence")
                     )
                 }
-
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                    horizontalAlignment = Alignment.End
-                ){
-                    Text(
-                        text = user.elo.toString(),
-                        modifier = Modifier.padding(4.dp)
-                    )
-
-                    Text(
-                        text = user.rank,
-                        modifier = Modifier.padding(4.dp)
-                    )
-
-                }
-
             }
         }
-
     }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth().height(800.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-
-    }
-
-
+    val entryCost = RankedCostCalculator.calculateCost(
+        EconomyConfig.base_cost_ranked,
+        user.rankedWinStreak,
+        user.rankedLossStreak
+    )
 
     Column(
-        modifier = Modifier.fillMaxHeight().padding(bottom = 30.dp),
-        verticalArrangement = Arrangement.Bottom
+        modifier = Modifier.fillMaxSize()
     ) {
 
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 30.dp),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.Start
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(12.dp)
         ) {
-            Button(
-                onClick = onNavigateBack,
-            ) {
-                Text("Home")
+
+            item {
+                UserHeaderCard(user = user, pantheonPosition = pantheonPosition, onClick = onNavigateToProfile)
             }
 
+            item {
+
+                Card(
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+
+                        Text(
+                            text = "Ranked Mode",
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            text = "${league.displayName} | ${user.rating}",
+                            fontSize = 16.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Button(
+                            onClick = {
+                                if (user.merit >= entryCost) {
+                                    onNavigateToWriting(rankedGamemode)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Play $entryCost Merit")
+                        }
+                    }
+                }
+            }
+
+            items(2) {
+                Card(
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(80.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Tournament Placeholder")
+                    }
+                }
+            }
+        }
+
+        Button(
+            onClick = onNavigateBack,
+            modifier = Modifier.padding(12.dp)
+        ) {
+            Text("Home")
         }
     }
-
 }
 
 @Preview(showBackground = true, showSystemUi = true)
@@ -138,6 +183,7 @@ fun CompetitionsPreview() {
     Inkr8Theme {
         Competitions(
             user = fakeUser4,
+            pantheonPosition = null,
             onNavigateBack = {},
             onNavigateToWriting = {},
             onNavigateToProfile = {}

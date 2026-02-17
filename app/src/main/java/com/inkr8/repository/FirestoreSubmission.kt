@@ -16,5 +16,6 @@ data class FirestoreSubmission(
     val topicId: String? = null,
     val themeId: String? = null,
     val evaluation: FirestoreEvaluation? = null,
-    val status: SubmissionStatus = SubmissionStatus.PENDING
+    val status: SubmissionStatus = SubmissionStatus.PENDING,
+    val playmode: String = "PRACTICE"
 )

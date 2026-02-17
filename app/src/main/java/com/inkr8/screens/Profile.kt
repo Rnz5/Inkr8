@@ -24,30 +24,37 @@ import androidx.compose.ui.unit.sp
 import com.inkr8.AuthManager
 import com.inkr8.R
 import com.inkr8.data.Users
+import com.inkr8.rating.League
+import com.inkr8.rating.PantheonManager
 import com.inkr8.ui.theme.Inkr8Theme
 import com.inkr8.utils.TimeUtils.formatTime
 
 val fakeUser = Users(
-    id = "UASDXAUSIASNI",
-    name = "Mintcake",
-    email = null,
-    merit = 1000,
-    rank = "Unranked",
-    elo = 146,
-    submissionsCount = 16,
+    id = "USR_8492QW",
+    name = "MintCake",
+    email = "email example",
+    merit = 1275,
+    rating = 86,
+    reputation = 42,
+    bestScore = 91.4,
+    submissionsCount = 38,
     profileImageURL = "",
     bannerImageURL = "",
-    achievements = emptyList(),
-    joinedDate = System.currentTimeMillis()
+    achievements = listOf(),
+    joinedDate = System.currentTimeMillis() - 1000L * 60 * 60 * 24 * 120,
+    rankedWinStreak = 2,
+    rankedLossStreak = 0
 )
 @Composable
 fun Profile(
     user: Users,
     isOwner: Boolean,
+    pantheonPosition: Int?,
     onNavigateBack: () -> Unit,
     onNavigateToSubmissions: () -> Unit,
     onLinkGoogle: () -> Unit
 ) {
+    val league = League.fromRating(user.rating)
 
     Column(
     ){
@@ -109,7 +116,7 @@ fun Profile(
                 modifier = Modifier.weight(2f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(//✔
+                Text(
                     text = if(user.email == null){
                         user.name
                     }else{
@@ -129,14 +136,21 @@ fun Profile(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = user.elo.toString(),
+                    text = user.rating.toString(),
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
-                Text(
-                    text = user.rank,
-                    fontSize = 10.sp
-                )
+                if(pantheonPosition != null){
+                    Text(
+                        text = "Pantheon #$pantheonPosition",
+                        fontSize = 10.sp
+                    )
+                }else{
+                    Text(
+                        text = league.displayName,
+                        fontSize = 10.sp
+                    )
+                }
             }
         }
 
@@ -204,6 +218,7 @@ fun ProfilePreview() {
     Inkr8Theme {
         Profile(
             user = fakeUser,
+            pantheonPosition = null,
             isOwner = true,
             onNavigateBack = {},
             onNavigateToSubmissions = {},

@@ -12,5 +12,6 @@ data class Submissions(
     val topicId: String? = null,
     val themeId: String? = null,
     val evaluation: Evaluation? = null,
-    val status: SubmissionStatus = SubmissionStatus.PENDING
+    val status: SubmissionStatus = SubmissionStatus.PENDING,
+    val playmode: String = "PRACTICE",
 )

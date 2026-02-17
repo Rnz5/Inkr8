@@ -1,6 +1,5 @@
 package com.inkr8.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,28 +32,33 @@ import com.inkr8.data.StandardWriting
 import com.inkr8.data.Theme
 import com.inkr8.data.Topic
 import com.inkr8.data.Users
+import com.inkr8.rating.PantheonManager
 import com.inkr8.repository.ThemeRepository
 import com.inkr8.repository.TopicRepository
 import com.inkr8.repository.WordRepository
 import com.inkr8.ui.theme.Inkr8Theme
+import com.inkr8.utils.UserHeaderCard
 
 val fakeUser3 = Users(
-    id = "UASDXAUSIASNI",
-    name = "Example User ^^",
-    email = null,
-    merit = 1000,
-    rank = "Unranked",
-    elo = 0,
-    submissionsCount = 0,
+    id = "USR_8492QW",
+    name = "MintCake",
+    email = "email example",
+    merit = 1275,
+    rating = 86,
+    reputation = 42,
+    bestScore = 91.4,
+    submissionsCount = 38,
     profileImageURL = "",
     bannerImageURL = "",
-    achievements = emptyList(),
-    joinedDate = System.currentTimeMillis()
+    achievements = listOf(),
+    joinedDate = System.currentTimeMillis() - 1000L * 60 * 60 * 24 * 120,
+    rankedWinStreak = 2,
+    rankedLossStreak = 0
 )
-
 @Composable
 fun Practice(
     user: Users,
+    pantheonPosition: Int?,
     onNavigateBack: () -> Unit,
     onNavigateToWriting: (Gamemode) -> Unit,
     onNavigateToProfile: () -> Unit
@@ -74,57 +78,9 @@ fun Practice(
         println("Topic: $topic")
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ){
-        Button(
-            onClick = onNavigateToProfile,
-            modifier = Modifier.fillMaxWidth()
-        ){
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(4.dp),
-            ){
-                Image(
-                    painter = painterResource(id = R.drawable.pfpexample),
-                    contentDescription = null
-                )
 
-                Column(
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                ){
-                    Text(
-                        text = user.name,
-                        modifier = Modifier.padding(4.dp)
-                    )
 
-                    Text(
-                        text = "Merit: ${user.merit}",
-                        modifier = Modifier.padding(4.dp)
-                    )
-                }
-
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                    horizontalAlignment = Alignment.End
-                ){
-                    Text(
-                        text = user.elo.toString(),
-                        modifier = Modifier.padding(4.dp)
-                    )
-
-                    Text(
-                        text = user.rank,
-                        modifier = Modifier.padding(4.dp)
-                    )
-
-                }
-
-            }
-        }
-
-    }
+    UserHeaderCard(user = user, pantheonPosition = pantheonPosition, onClick = onNavigateToProfile)
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -218,6 +174,7 @@ fun PracticePreview() {
     Inkr8Theme {
         Practice(
             user = fakeUser3,
+            pantheonPosition = null,
             onNavigateBack = {},
             onNavigateToWriting = {},
             onNavigateToProfile = {}

@@ -2,6 +2,7 @@ package com.inkr8.repository
 
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.inkr8.data.Users
 import com.inkr8.economic.EconomyConfig
 
@@ -98,6 +99,31 @@ class UserRepository(
     fun updateEmail(userId: String, email: String?) {
         usersCollection.document(userId)
             .update("email", email)
+    }
+
+    fun updateRatingAndStreak(
+        userId: String,
+        newRating: Long,
+        winStreak: Long,
+        lossStreak: Long
+    ) {
+        val updates = mapOf(
+            "rating" to newRating,
+            "rankedWinStreak" to winStreak,
+            "rankedLossStreak" to lossStreak
+        )
+
+        firestore.collection("users").document(userId).update(updates)
+    }
+
+    fun getTop100Users(
+        onResult: (List<Users>) -> Unit
+    ) {
+        firestore.collection("users").orderBy("rating", Query.Direction.DESCENDING).limit(100).get().addOnSuccessListener {
+            snapshot ->
+                val users = snapshot.documents.mapNotNull { it.toObject(Users::class.java) }
+                onResult(users)
+            }
     }
 
 }

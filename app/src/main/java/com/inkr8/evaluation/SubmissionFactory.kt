@@ -11,6 +11,7 @@ object SubmissionFactory {
     fun create(
         content: String,
         gamemode: String,
+        playMode: String,
         wordsUsed: List<Words>,
         topicId: String? = null,
         themeId: String? = null,
@@ -29,7 +30,8 @@ object SubmissionFactory {
             topicId = topicId,
             themeId = themeId,
             evaluation = null,
-            status = SubmissionStatus.PENDING
+            status = SubmissionStatus.PENDING,
+            playmode = playMode
         )
     }
 }

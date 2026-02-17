@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.inkr8.data.Gamemode
 import com.inkr8.data.OnTopicWriting
+import com.inkr8.data.PlayMode
 import com.inkr8.data.StandardWriting
 import com.inkr8.data.Submissions
 import com.inkr8.data.Words
@@ -55,6 +56,7 @@ fun WordButton(word: Words, used: Boolean, onClick: () -> Unit) { //i am a freak
 @Composable
 fun Writing(
     gamemode: Gamemode,
+    playMode: PlayMode,
     onAddSubmission: (Submissions) -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToResults: () -> Unit
@@ -187,6 +189,11 @@ fun Writing(
                                     is StandardWriting -> "STANDARD"
                                     is OnTopicWriting -> "ON_TOPIC"
                                 },
+                                playMode = when (playMode) {
+                                    PlayMode.Practice -> "PRACTICE"
+                                    PlayMode.Ranked -> "RANKED"
+                                    is PlayMode.Tournament -> "TOURNAMENT"
+                                },
                                 wordsUsed = selectedWords.filter {
                                     userText.lowercase().contains(it.word.lowercase())
                                 },
@@ -226,9 +233,11 @@ fun WritingPreview() {
     Inkr8Theme {
         Writing(
             gamemode = StandardWriting,
+            playMode = PlayMode.Practice,
             onAddSubmission = {},
             onNavigateBack = {},
             onNavigateToResults = {}
+
         )
     }
 }
