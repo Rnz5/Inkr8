@@ -11,7 +11,7 @@ object RankedCostCalculator{
         var modifier = 1.0
 
         if(winStreak > 0){
-            modifier += (winStreak*0.05).coerceAtMost(0.5)
+            modifier += (winStreak*0.05).coerceAtMost(0.75)
         }
         if(lossStreak > 0){
             modifier -= (lossStreak*0.05).coerceAtMost(0.4)

@@ -6,16 +6,16 @@ class SubmissionProcessor(
     private val evaluator: SubmissionEvaluator
 ){
     fun process(submission: Submissions): Submissions {
+
         val evaluation = evaluator.evaluate(submission)
+        val evaluatedSubmission = submission.copy(evaluation = evaluation, status = evaluation.resultStatus)
 
-        val evaluatedSubmission = submission.copy(
-            evaluation = evaluation,
-            status = evaluation.resultStatus
-        )
+        val isRanked = evaluatedSubmission.playmode == "RANKED"
 
-        val merit: Long = MeritCalculator.CalculateMerit(evaluatedSubmission)
+        val merit: Long = MeritCalculator.CalculateMerit(submission = evaluatedSubmission, isRanked = isRanked)
 
-        return evaluatedSubmission.copy(evaluation = evaluation.copy(meritEarned = merit)
+        return evaluatedSubmission.copy(
+            evaluation = evaluation.copy(meritEarned = merit)
         )
     }
 }

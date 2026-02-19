@@ -36,6 +36,7 @@ import com.inkr8.rating.PantheonManager
 import com.inkr8.rating.RatingCalculator
 import com.inkr8.repository.FirestoreSubmissionRepository
 import com.inkr8.repository.UserRepository
+import com.inkr8.screens.LeaderboardScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -180,7 +181,8 @@ class MainActivity : ComponentActivity() {
                                 // show toast
                             }
                         },
-                        onNavigateToProfile = { currentScreen = Screen.profile }
+                        onNavigateToProfile = { currentScreen = Screen.profile },
+                        onNavigateToLeaderboard = { currentScreen = Screen.leaderboard }
                     )
                     Screen.writing -> Writing(
                         gamemode = currentGamemode ?: StandardWriting,
@@ -290,6 +292,10 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     }
+                    Screen.leaderboard -> LeaderboardScreen(
+                        currentUser = currentUser!!,
+                        onNavigateBack = { currentScreen = Screen.competitions }
+                    )
 
                 }
             }
@@ -297,4 +303,4 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-enum class Screen { home, practice, writing, submissions, competitions, profile, results }
+enum class Screen { home, practice, writing, submissions, competitions, profile, results, leaderboard }

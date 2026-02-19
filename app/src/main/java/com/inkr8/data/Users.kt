@@ -16,5 +16,5 @@ data class Users(
     val rankedWinStreak: Long = 0,
     val rankedLossStreak: Long = 0,
 
-)
+    )
 

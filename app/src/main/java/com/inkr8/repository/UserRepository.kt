@@ -12,6 +12,14 @@ class UserRepository(
 
     private val usersCollection = firestore.collection("users")
 
+    fun getAllUsers(onResult: (List<Users>) -> Unit) {
+        firestore.collection("users")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val users = snapshot.toObjects(Users::class.java)
+                onResult(users)
+            }
+    }
     fun ensureUserExists(
         uid: String,
         name: String,

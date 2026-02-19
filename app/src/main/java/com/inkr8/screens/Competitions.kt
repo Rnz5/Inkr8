@@ -68,7 +68,8 @@ fun Competitions(
     pantheonPosition: Int?,
     onNavigateBack: () -> Unit,
     onNavigateToWriting: (Gamemode) -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
+    onNavigateToLeaderboard: () -> Unit
 ) {
 
     val league = League.fromRating(user.rating)
@@ -121,17 +122,29 @@ fun Competitions(
                 ) {
 
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-
-                        Text(
-                            text = "Ranked Mode",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ){
+                            Button(
+                                onClick = {},
+                            ) {
+                                Text("I")
+                            }
+                            Text(
+                                text = "Ranked Mode",
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Button(
+                                onClick = onNavigateToLeaderboard,
+                            ) {
+                                Text("A")
+                            }
+                        }
 
                         Text(
                             text = "${league.displayName} | ${user.rating}",
@@ -186,7 +199,8 @@ fun CompetitionsPreview() {
             pantheonPosition = null,
             onNavigateBack = {},
             onNavigateToWriting = {},
-            onNavigateToProfile = {}
+            onNavigateToProfile = {},
+            onNavigateToLeaderboard = {}
         )
     }
 }
