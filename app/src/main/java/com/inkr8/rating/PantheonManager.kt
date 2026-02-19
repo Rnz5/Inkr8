@@ -4,22 +4,23 @@ import com.inkr8.data.Users
 
 object PantheonManager {
 
-    const val MIN_RATING = 180
+    const val MIN_RATING = 180L
 
-    fun checkPantheonStatus(currentUser: Users, top100: List<Users>): Pair<Boolean, Int?> {
+    fun checkPantheonStatus(
+        user: Users,
+        top100: List<Users>
+    ): Pair<Boolean, Int?> {
 
-        if (currentUser.rating < MIN_RATING) {
-            return false to null
+        if (user.rating < MIN_RATING) {
+            return Pair(false, null)
         }
 
-        val sorted = top100.sortedByDescending { it.rating }
+        val index = top100.indexOfFirst { it.id == user.id }
 
-        val position = sorted.indexOfFirst { it.id == currentUser.id }
-
-        return if (position in 0..99) {
-            true to (position + 1)
+        return if (index != -1) {
+            Pair(true, index + 1)
         } else {
-            false to null
+            Pair(false, null)
         }
     }
 }

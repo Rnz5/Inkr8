@@ -24,6 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.inkr8.data.Users
 import com.inkr8.rating.League
+import com.inkr8.rating.PantheonManager
 import com.inkr8.repository.UserRepository
 import com.inkr8.ui.theme.Inkr8Theme
 
@@ -61,7 +62,9 @@ fun LeaderboardScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         LazyColumn {
-            itemsIndexed(top100) { index, user ->
+            val pantheonMembers = top100.filter { it.rating >= PantheonManager.MIN_RATING }
+
+            itemsIndexed(pantheonMembers) { index, user ->
 
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
