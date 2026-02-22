@@ -15,6 +15,8 @@ data class Users(
     val joinedDate: Long = System.currentTimeMillis(),
     val rankedWinStreak: Long = 0,
     val rankedLossStreak: Long = 0,
+    val currentlyInRanked: Boolean = false,
+    val rankedSessionStartedAt: Long? = null,
 
     )
 

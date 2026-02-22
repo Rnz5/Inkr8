@@ -134,6 +134,24 @@ class UserRepository(
             }
     }
 
+    fun updateReputation(userId: String, newReputation: Long) {
+        usersCollection.document(userId).update("reputation", newReputation)
+    }
+
+    fun startRankedSession(userId: String) {
+        val updates = mapOf("currentlyInRanked" to true, "rankedSessionStartedAt" to System.currentTimeMillis())
+
+        usersCollection.document(userId).update(updates)
+    }
+
+    fun finishRankedSession(userId: String) {
+        val updates = mapOf("currentlyInRanked" to false, "rankedSessionStartedAt" to null)
+
+        usersCollection.document(userId).update(updates)
+    }
+
+
+
 }
 
 

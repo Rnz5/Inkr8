@@ -95,7 +95,8 @@ fun Competitions(
     val entryCost = RankedCostCalculator.calculateCost(
         EconomyConfig.base_cost_ranked,
         user.rankedWinStreak,
-        user.rankedLossStreak
+        user.rankedLossStreak,
+        user.reputation
     )
 
     Column(

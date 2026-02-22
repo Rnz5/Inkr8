@@ -34,6 +34,7 @@ import com.inkr8.economic.EconomyConfig
 import com.inkr8.economic.RankedCostCalculator
 import com.inkr8.rating.PantheonManager
 import com.inkr8.rating.RatingCalculator
+import com.inkr8.rating.ReputationManager
 import com.inkr8.repository.FirestoreSubmissionRepository
 import com.inkr8.repository.UserRepository
 import com.inkr8.screens.LeaderboardScreen
@@ -122,6 +123,14 @@ class MainActivity : ComponentActivity() {
 
                 val user = currentUser ?: return@LaunchedEffect
 
+                if (currentUser!!.currentlyInRanked) {
+
+                    val newRep = ReputationManager.onRankedAbandoned(currentUser!!.reputation)
+
+                    userRepository.updateReputation(currentUser!!.id, newRep)
+                    userRepository.finishRankedSession(currentUser!!.id)
+                }
+
                 if (user.rating >= PantheonManager.MIN_RATING) {
                     userRepository.getTop100Users { top100 ->
                         val (isPantheon, position) =
@@ -167,16 +176,21 @@ class MainActivity : ComponentActivity() {
                         onNavigateBack = { currentScreen = Screen.home },
                         onNavigateToWriting = { gamemode ->
 
-                            val entryCost = RankedCostCalculator.calculateCost(EconomyConfig.base_cost_ranked, currentUser!!.rankedWinStreak, currentUser!!.rankedLossStreak)
+                            val entryCost = RankedCostCalculator.calculateCost(
+                                EconomyConfig.base_cost_ranked,
+                                currentUser!!.rankedWinStreak,
+                                currentUser!!.rankedLossStreak,
+                                currentUser!!.reputation
+                            )
 
                             if (currentUser!!.merit >= entryCost) {
 
-                                userRepository.addMerit(userId = currentUser!!.id, amount = -entryCost)
+                                userRepository.addMerit(currentUser!!.id, -entryCost)
+                                userRepository.startRankedSession(currentUser!!.id)
 
                                 currentGamemode = gamemode
                                 currentPlayMode = PlayMode.Ranked
                                 currentScreen = Screen.writing
-
                             } else {
                                 // show toast
                             }
@@ -208,6 +222,17 @@ class MainActivity : ComponentActivity() {
 
                                         val isWin = finalScore >= 60.0 // <- this might change in the future to 51, i will see
                                         val newWinStreak = if (isWin) currentUser!!.rankedWinStreak + 1 else 0
+
+                                        var rep = currentUser!!.reputation
+
+                                        rep = ReputationManager.onRankedCompleted(rep)
+
+                                        if (newWinStreak > 0 && newWinStreak % 5 == 0L) {
+                                            rep = ReputationManager.consistencyBonus(rep)
+                                        }
+
+                                        userRepository.updateReputation(currentUser!!.id, rep)
+
                                         val newLossStreak = if (!isWin) currentUser!!.rankedLossStreak + 1 else 0
 
                                         userRepository.updateRatingAndStreak(
@@ -216,6 +241,8 @@ class MainActivity : ComponentActivity() {
                                             winStreak = newWinStreak,
                                             lossStreak = newLossStreak
                                         )
+
+                                        userRepository.finishRankedSession(currentUser!!.id)
                                     }
 
                                     val meritEarned = finalSubmission.evaluation?.meritEarned ?: 0
@@ -234,9 +261,10 @@ class MainActivity : ComponentActivity() {
                                     //refund system if somehow the submission db fails xD
                                     if (finalSubmission.playmode == "RANKED") {
 
-                                        val refund = RankedCostCalculator.calculateCost(EconomyConfig.base_cost_ranked, currentUser!!.rankedWinStreak, currentUser!!.rankedLossStreak)
+                                        val refund = RankedCostCalculator.calculateCost(EconomyConfig.base_cost_ranked, currentUser!!.rankedWinStreak, currentUser!!.rankedLossStreak, currentUser!!.reputation)
                                         userRepository.addMerit(userId = currentUser!!.id, amount = refund)
                                     }
+                                    userRepository.finishRankedSession(currentUser!!.id)
                                     e.printStackTrace()
                                 }
                             )
