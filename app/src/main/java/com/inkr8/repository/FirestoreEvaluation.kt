@@ -6,5 +6,6 @@ data class FirestoreEvaluation(
     val feedback: String = "",
     val expanded: Boolean = false,
     val resultStatus: String = "",
-    val meritEarned: Long = 0
+    val meritEarned: Long = 0,
+    val rankLeaderboard: Long = 0
 )

@@ -6,5 +6,6 @@ data class Evaluation(
     val feedback: String = "",
     val isExpanded: Boolean = false,
     val resultStatus: SubmissionStatus = SubmissionStatus.PENDING,
-    val meritEarned: Long = 0
+    val meritEarned: Long = 0,
+    val rankLeaderboard: Long = 0
 )
