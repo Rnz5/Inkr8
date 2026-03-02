@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.sp
 import com.google.firebase.firestore.FirebaseFirestore
 import com.inkr8.data.Users
 import com.inkr8.data.Words
-import com.inkr8.economic.EconomyConfig
+import com.inkr8.economy.EconomyConfig
 import com.inkr8.rating.League
 import com.inkr8.repository.UserRepository
 import com.inkr8.repository.WordRepository
@@ -156,13 +156,13 @@ fun HomeScreen(
                         isSpending = true
                         userRepository.spendMerit(
                             userId = user.id,
-                            amount = EconomyConfig.show_example_sentence,
+                            amount = EconomyConfig.SHOW_EXAMPLE_SENTENCE,
                             onSuccess = {
                                 showSentence = true
                                 isSpending = false
                             },
                             onError = {
-                                Toast.makeText(context, EconomyConfig.insuffientMerit(), Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, EconomyConfig.insufficientMerit(), Toast.LENGTH_SHORT).show()
                                 isSpending = false
                             }
 
@@ -170,7 +170,7 @@ fun HomeScreen(
                     }
                 ){
 
-                    Text(if (showSentence) "Example Shown" else "Show Example ${EconomyConfig.show_example_sentence} Merit")
+                    Text(if (showSentence) "Example Shown" else "Show Example ${EconomyConfig.SHOW_EXAMPLE_SENTENCE} Merit")
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))

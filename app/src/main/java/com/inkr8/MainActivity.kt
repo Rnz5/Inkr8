@@ -30,8 +30,8 @@ import com.inkr8.screens.Writing
 import com.inkr8.ui.theme.Inkr8Theme
 import com.inkr8.data.Submissions
 import com.inkr8.data.Users
-import com.inkr8.economic.EconomyConfig
-import com.inkr8.economic.RankedCostCalculator
+import com.inkr8.economy.EconomyConfig
+import com.inkr8.economy.RankedCostCalculator
 import com.inkr8.rating.PantheonManager
 import com.inkr8.rating.RatingCalculator
 import com.inkr8.rating.ReputationManager
@@ -177,7 +177,7 @@ class MainActivity : ComponentActivity() {
                         onNavigateToWriting = { gamemode ->
 
                             val entryCost = RankedCostCalculator.calculateCost(
-                                EconomyConfig.base_cost_ranked,
+                                EconomyConfig.BASE_COST_RANKED,
                                 currentUser!!.rankedWinStreak,
                                 currentUser!!.rankedLossStreak,
                                 currentUser!!.reputation
@@ -261,7 +261,7 @@ class MainActivity : ComponentActivity() {
                                     //refund system if somehow the submission db fails xD
                                     if (finalSubmission.playmode == "RANKED") {
 
-                                        val refund = RankedCostCalculator.calculateCost(EconomyConfig.base_cost_ranked, currentUser!!.rankedWinStreak, currentUser!!.rankedLossStreak, currentUser!!.reputation)
+                                        val refund = RankedCostCalculator.calculateCost(EconomyConfig.BASE_COST_RANKED, currentUser!!.rankedWinStreak, currentUser!!.rankedLossStreak, currentUser!!.reputation)
                                         userRepository.addMerit(userId = currentUser!!.id, amount = refund)
                                     }
                                     userRepository.finishRankedSession(currentUser!!.id)

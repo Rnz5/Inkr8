@@ -1,4 +1,4 @@
-package com.inkr8.economic
+package com.inkr8.economy
 
 import kotlin.math.pow
 

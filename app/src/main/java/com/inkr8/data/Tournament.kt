@@ -1,17 +1,22 @@
 package com.inkr8.data
 
+import com.inkr8.timing.TournamentTimingConfig
+
 data class Tournament(
     val id: String = "",
     val creatorId: String = "",
     val prizePool: Long = 0L,
     val maxPlayers: Long = 0L,
-    val minPlayers: Long = 5L,
+    val minPlayers: Long = TournamentTimingConfig.MIN_PLAYERS.toLong(),
     val playersCount: Long = 0L,
-    val entryFee: Long = 0L,
-    val deadline: Long = 0L,
     val submissionsCount: Long = 0L,
+    val entranceFee: Long = 0L,
+    val systemFee: Long = 0L,
+    val enrollmentDeadline: Long = 0L,
+    val submissionDeadline: Long = 0L,
+    val refunded: Boolean = false,
     val requirements: TournamentRequirements = TournamentRequirements(),
-    val status: TournamentStatus = TournamentStatus.OPEN,
+    val status: TournamentStatus = TournamentStatus.ENROLLING,
     val strictnessMultiplier: Double = 0.92,
     val createdAt: Long = System.currentTimeMillis()
 )
@@ -24,9 +29,9 @@ data class TournamentRequirements(
 )
 
 enum class TournamentStatus {
-    OPEN,
-    FULL,
-    EVALUATING,
-    COMPLETED,
-    CANCELLED
+    ENROLLING,     // users can join
+    ACTIVE,        // submissions allowed
+    EVALUATING,    // R8 evaluation
+    COMPLETED,     // Leaderboard screen and rewards repartition for enrolled users
+    CANCELLED      // sad ending :(
 }

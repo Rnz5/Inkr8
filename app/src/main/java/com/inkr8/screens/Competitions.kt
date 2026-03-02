@@ -1,13 +1,11 @@
 package com.inkr8.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,30 +17,22 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.inkr8.R
 import com.inkr8.data.Gamemode
 import com.inkr8.data.OnTopicWriting
 import com.inkr8.data.StandardWriting
 import com.inkr8.data.Theme
 import com.inkr8.data.Topic
 import com.inkr8.data.Users
-import com.inkr8.economic.EconomyConfig
-import com.inkr8.economic.RankedCostCalculator
+import com.inkr8.economy.EconomyConfig
+import com.inkr8.economy.RankedCostCalculator
 import com.inkr8.rating.League
-import com.inkr8.rating.PantheonManager
-import com.inkr8.repository.UserRepository
 import com.inkr8.ui.theme.Inkr8Theme
 import com.inkr8.utils.UserHeaderCard
 
@@ -93,7 +83,7 @@ fun Competitions(
     }
 
     val entryCost = RankedCostCalculator.calculateCost(
-        EconomyConfig.base_cost_ranked,
+        EconomyConfig.BASE_COST_RANKED,
         user.rankedWinStreak,
         user.rankedLossStreak,
         user.reputation

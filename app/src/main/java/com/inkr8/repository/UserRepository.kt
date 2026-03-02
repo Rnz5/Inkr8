@@ -4,7 +4,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.inkr8.data.Users
-import com.inkr8.economic.EconomyConfig
+import com.inkr8.economy.EconomyConfig
 
 class UserRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
@@ -70,7 +70,7 @@ class UserRepository(
             val currentMerit = (snapshot.get("merit") as? Number)?.toLong() ?: 0L
 
             if (currentMerit < amount) {
-                throw Exception(EconomyConfig.insuffientMerit())
+                throw Exception(EconomyConfig.insufficientMerit())
             }else{
                 transaction.update(userRef, "merit", currentMerit - amount)
             }
