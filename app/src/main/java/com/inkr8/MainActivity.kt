@@ -2,12 +2,14 @@ package com.inkr8
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import com.inkr8.data.Gamemode
 import com.inkr8.data.PlayMode
 import com.inkr8.data.StandardWriting
@@ -29,6 +32,7 @@ import com.inkr8.screens.Submissions
 import com.inkr8.screens.Writing
 import com.inkr8.ui.theme.Inkr8Theme
 import com.inkr8.data.Submissions
+import com.inkr8.data.Tournament
 import com.inkr8.data.Users
 import com.inkr8.economy.EconomyConfig
 import com.inkr8.economy.RankedCostCalculator
@@ -36,8 +40,10 @@ import com.inkr8.rating.PantheonManager
 import com.inkr8.rating.RatingCalculator
 import com.inkr8.rating.ReputationManager
 import com.inkr8.repository.FirestoreSubmissionRepository
+import com.inkr8.repository.FirestoreTournamentRepository
 import com.inkr8.repository.UserRepository
 import com.inkr8.screens.LeaderboardScreen
+import com.inkr8.screens.TournamentDetails
 
 class MainActivity : ComponentActivity() {
 
@@ -73,7 +79,7 @@ class MainActivity : ComponentActivity() {
         }
         setContent {
             var currentUser by currentUserState
-
+            val context = LocalContext.current
             var pantheonPosition by remember { mutableStateOf<Int?>(null) }
 
 
@@ -149,8 +155,9 @@ class MainActivity : ComponentActivity() {
             Inkr8Theme {
                 var currentGamemode by remember { mutableStateOf<Gamemode?>(null) }
                 var currentPlayMode by remember { mutableStateOf<PlayMode>(PlayMode.Practice) }
-
+                var selectedTournament by remember { mutableStateOf<Tournament?>(null) }
                 var currentScreen by remember { mutableStateOf(Screen.home) }
+                var selectedProfileUserId by remember { mutableStateOf<String?>(null) }
 
                 when(currentScreen) {
                     Screen.home -> HomeScreen(
@@ -196,7 +203,15 @@ class MainActivity : ComponentActivity() {
                             }
                         },
                         onNavigateToProfile = { currentScreen = Screen.profile },
-                        onNavigateToLeaderboard = { currentScreen = Screen.leaderboard }
+                        onNavigateToLeaderboard = { currentScreen = Screen.leaderboard },
+                        onNavigateToTournamentDetails = { tournament ->
+                            selectedTournament = tournament
+                            currentScreen = Screen.tournamentDetails
+                        },
+                        onNavigateToUserProfile = { userId ->
+                            selectedProfileUserId = userId
+                            currentScreen = Screen.userProfile
+                        }
                     )
                     Screen.writing -> Writing(
                         gamemode = currentGamemode ?: StandardWriting,
@@ -324,6 +339,119 @@ class MainActivity : ComponentActivity() {
                         currentUser = currentUser!!,
                         onNavigateBack = { currentScreen = Screen.competitions }
                     )
+                    Screen.tournamentDetails -> {
+                        val tournament = selectedTournament
+                        val tournamentRepository = remember { FirestoreTournamentRepository() }
+
+                        var isEnrolled by remember(tournament?.id, currentUser!!.id) { mutableStateOf(false) }
+                        var isEnrolling by remember(tournament?.id, currentUser!!.id) { mutableStateOf(false) }
+
+                        DisposableEffect(tournament?.id, currentUser!!.id) {
+                            if (tournament == null) {
+                                onDispose {}
+                            } else {
+                                val registration = tournamentRepository.listenToEnrollmentStatus(
+                                    tournamentId = tournament.id,
+                                    userId = currentUser!!.id,
+                                    onUpdate = { enrolled ->
+                                        isEnrolled = enrolled
+                                    },
+                                    onError = { e ->
+                                        e.printStackTrace()
+                                    }
+                                )
+
+                                onDispose {
+                                    registration.remove()
+                                }
+                            }
+                        }
+
+                        if (tournament != null) {
+                            TournamentDetails(
+                                tournament = tournament,
+                                onNavigateBack = { currentScreen = Screen.competitions },
+                                onHostClick = {
+                                    selectedProfileUserId = tournament.creatorId
+                                    currentScreen = Screen.userProfile
+                                },
+                                isEnrolled = isEnrolled,
+                                isEnrolling = isEnrolling,
+                                onEnroll = {
+                                    if (isEnrolled || isEnrolling) return@TournamentDetails
+
+                                    isEnrolling = true
+
+                                    tournamentRepository.enrollUserViaFunction(
+                                        tournamentId = tournament.id,
+                                        onSuccess = {
+                                            Toast.makeText(
+                                                context,
+                                                "Enrolled successfully",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+
+                                            userRepository.getUserById(currentUser!!.id) { updatedUser ->
+                                                currentUser = updatedUser
+                                                isEnrolling = false
+                                            }
+                                        },
+                                        onError = { e ->
+                                            Toast.makeText(
+                                                context,
+                                                e.message ?: "Failed to enroll",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                            isEnrolling = false
+                                        }
+                                    )
+                                }
+                            )
+                        } else {
+                            currentScreen = Screen.competitions
+                        }
+                    }
+                    Screen.userProfile -> {
+                        var viewedUser by remember { mutableStateOf<Users?>(null) }
+                        var viewedPantheonPosition by remember { mutableStateOf<Int?>(null) }
+
+                        LaunchedEffect(selectedProfileUserId) {
+                            val userId = selectedProfileUserId
+                            if (userId == null) return@LaunchedEffect
+
+                            userRepository.getUserById(userId) { user ->
+                                viewedUser = user
+
+                                if (user != null && user.rating >= PantheonManager.MIN_RATING) {
+                                    userRepository.getTop100Users { top100 ->
+                                        val (isPantheon, position) =
+                                            PantheonManager.checkPantheonStatus(user, top100)
+                                        viewedPantheonPosition = if (isPantheon) position else null
+                                    }
+                                } else {
+                                    viewedPantheonPosition = null
+                                }
+                            }
+                        }
+
+                        if (viewedUser != null) {
+                            Profile(
+                                user = viewedUser!!,
+                                isOwner = viewedUser!!.id == currentUser!!.id,
+                                pantheonPosition = viewedPantheonPosition,
+                                onNavigateBack = { currentScreen = Screen.competitions },
+                                onNavigateToSubmissions = { currentScreen = Screen.submissions },
+                                onLinkGoogle = {}
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Loading profile...")
+                            }
+                        }
+                    }
 
                 }
             }
@@ -331,4 +459,15 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-enum class Screen { home, practice, writing, submissions, competitions, profile, results, leaderboard }
+enum class Screen {
+    home,
+    practice,
+    writing,
+    submissions,
+    competitions,
+    profile,
+    results,
+    leaderboard,
+    tournamentDetails,
+    userProfile
+}

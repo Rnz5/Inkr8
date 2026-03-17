@@ -4,7 +4,9 @@ import com.inkr8.timing.TournamentTimingConfig
 
 data class Tournament(
     val id: String = "",
+    val title: String = "",
     val creatorId: String = "",
+    val creatorName: String = "",
     val prizePool: Long = 0L,
     val maxPlayers: Long = 0L,
     val minPlayers: Long = TournamentTimingConfig.MIN_PLAYERS.toLong(),
@@ -18,7 +20,8 @@ data class Tournament(
     val requirements: TournamentRequirements = TournamentRequirements(),
     val status: TournamentStatus = TournamentStatus.ENROLLING,
     val strictnessMultiplier: Double = 0.92,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val gamemode: String = "STANDARD"
 )
 
 data class TournamentRequirements(

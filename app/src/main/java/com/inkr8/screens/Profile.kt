@@ -5,9 +5,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -19,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.inkr8.AuthManager
@@ -55,48 +62,54 @@ fun Profile(
     onLinkGoogle: () -> Unit
 ) {
     val league = League.fromRating(user.rating)
+    val scrollState = rememberScrollState()
 
     Column(
-    ){
-        Card( // <- this will be user's banner
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(bottom = 24.dp),
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ){
+        ) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp, start = 12.dp, end = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                if(isOwner){
-                    if(user.email == null){
-                        Button(onClick = {onLinkGoogle()}) {
-                            Text("Save with Google")
-                        }
+                if (isOwner && user.email == null) {
+                    Button(onClick = onLinkGoogle) {
+                        Text("Save with Google")
                     }
+                } else {
+                    Spacer(modifier = Modifier.width(1.dp))
                 }
-                Button(
-                    onClick = onNavigateBack,
-                ) {
+
+                Button(onClick = onNavigateBack) {
                     Text("X")
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth().padding(12.dp),
                 horizontalArrangement = Arrangement.Center
-            ){
+            ) {
                 Image(
                     painter = painterResource(id = R.drawable.pfpexample),
                     contentDescription = null
                 )
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
         }
+
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -117,11 +130,7 @@ fun Profile(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = if(user.email == null){
-                        user.name
-                    }else{
-                        "${user.name} ✓"
-                    },
+                    text = if (user.email == null) user.name else "${user.name} ✓",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -140,12 +149,12 @@ fun Profile(
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
-                if(pantheonPosition != null){
+                if (pantheonPosition != null) {
                     Text(
                         text = "Pantheon #$pantheonPosition",
                         fontSize = 10.sp
                     )
-                }else{
+                } else {
                     Text(
                         text = league.displayName,
                         fontSize = 10.sp
@@ -154,60 +163,63 @@ fun Profile(
             }
         }
 
+        InfoCardSection(
+            title = "Achievements",
+            content = "Work in progress"
+        )
 
+        InfoCardSection(
+            title = "Best Paragraph",
+            content = "Work in progress",
+            extraHeight = 80.dp
+        )
 
-        Spacer(modifier = Modifier.height(30.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(4.dp)
-        ){
-            Text(
-                text = "Achievements",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(4.dp)
-            )
-        }
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(10.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ){
-            Text("Work in progress")
-            Spacer(modifier = Modifier.height(60.dp))
-        }
-
-        Spacer(modifier = Modifier.height(30.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(4.dp)
-        ){
-            Text(
-                text = "Best Paragraph",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(4.dp)
-            )
-        }
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(10.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ){
-            Text("Work in progress")
-            Spacer(modifier = Modifier.height(120.dp))
-        }
-
-        if(isOwner){
+        if (isOwner) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(4.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
                 horizontalArrangement = Arrangement.Center
-
-            ){
+            ) {
                 Button(onClick = onNavigateToSubmissions) {
                     Text("View Submissions")
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun InfoCardSection(
+    title: String,
+    content: String,
+    extraHeight: Dp = 20.dp
+) {
+    Spacer(modifier = Modifier.height(20.dp))
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp)
+    ) {
+        Text(
+            text = title,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(4.dp)
+        )
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            Text(content)
+            Spacer(modifier = Modifier.height(extraHeight))
         }
     }
 }

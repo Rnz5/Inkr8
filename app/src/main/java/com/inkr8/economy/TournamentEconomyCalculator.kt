@@ -4,6 +4,11 @@ import kotlin.math.ceil
 
 object TournamentEconomyCalculator {
 
+    val ALLOWED_TIP_AMOUNTS = listOf(
+        100L,
+        150L,
+        200L
+    )
     fun calculateProjection(prizePool: Long, maxPlayers: Int): TournamentEconomyProjection {
 
         require(prizePool > 0) { "Prize pool must be positive" }

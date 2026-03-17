@@ -4,20 +4,26 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -26,13 +32,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.inkr8.data.Gamemode
 import com.inkr8.data.OnTopicWriting
-import com.inkr8.data.StandardWriting
 import com.inkr8.data.Theme
 import com.inkr8.data.Topic
+import com.inkr8.data.Tournament
 import com.inkr8.data.Users
+import com.inkr8.data.StandardWriting
 import com.inkr8.economy.EconomyConfig
 import com.inkr8.economy.RankedCostCalculator
 import com.inkr8.rating.League
+import com.inkr8.repository.FirestoreTournamentRepository
 import com.inkr8.ui.theme.Inkr8Theme
 import com.inkr8.utils.UserHeaderCard
 
@@ -52,6 +60,7 @@ val fakeUser4 = Users(
     rankedWinStreak = 3,
     rankedLossStreak = 0
 )
+
 @Composable
 fun Competitions(
     user: Users,
@@ -59,10 +68,25 @@ fun Competitions(
     onNavigateBack: () -> Unit,
     onNavigateToWriting: (Gamemode) -> Unit,
     onNavigateToProfile: () -> Unit,
-    onNavigateToLeaderboard: () -> Unit
+    onNavigateToLeaderboard: () -> Unit,
+    onNavigateToTournamentDetails: (Tournament) -> Unit,
+    onNavigateToUserProfile: (String) -> Unit
 ) {
-
     val league = League.fromRating(user.rating)
+    val tournamentRepository = remember { FirestoreTournamentRepository() }
+
+    var tournaments by remember { mutableStateOf<List<Tournament>>(emptyList()) }
+
+    DisposableEffect(Unit) {
+        val registration = tournamentRepository.listenToTournamentFeed(
+            onUpdate = { tournaments = it },
+            onError = { it.printStackTrace() }
+        )
+
+        onDispose {
+            registration.remove()
+        }
+    }
 
     val rankedGamemode = remember(user.rating) {
         when (league) {
@@ -92,47 +116,47 @@ fun Competitions(
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-
         LazyColumn(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(12.dp)
         ) {
-
             item {
-                UserHeaderCard(user = user, pantheonPosition = pantheonPosition, onClick = onNavigateToProfile)
+                UserHeaderCard(
+                    user = user,
+                    pantheonPosition = pantheonPosition,
+                    onClick = onNavigateToProfile
+                )
             }
 
             item {
-
                 Card(
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
                 ) {
-
                     Column(
-                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Row(
+                        androidx.compose.foundation.layout.Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
-                        ){
-                            Button(
-                                onClick = {},
-                            ) {
+                        ) {
+                            Button(onClick = {}) {
                                 Text("I")
                             }
+
                             Text(
                                 text = "Ranked Mode",
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            Button(
-                                onClick = onNavigateToLeaderboard,
-                            ) {
+
+                            Button(onClick = onNavigateToLeaderboard) {
                                 Text("A")
                             }
                         }
@@ -158,16 +182,68 @@ fun Competitions(
                 }
             }
 
-            items(2) {
+            item {
                 Card(
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    )
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().height(80.dp),
-                        contentAlignment = Alignment.Center
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text("Tournament Placeholder")
+                        Text(
+                            text = "Host a Tournament",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text("Not available yet. R8 is still pretending this feature is finished.")
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Button(
+                            onClick = {},
+                            enabled = false,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Coming Soon")
+                        }
                     }
+                }
+            }
+
+            if (tournaments.isEmpty()) {
+                item {
+                    Card(
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("No active tournaments right now. R8 is probably cooking one.")
+                        }
+                    }
+                }
+            } else {
+                items(
+                    items = tournaments,
+                    key = { it.id }
+                ) { tournament ->
+                    TournamentCard(
+                        tournament = tournament,
+                        creatorDisplayName = tournament.creatorName.ifBlank { "Unknown Host" },
+                        onClick = { onNavigateToTournamentDetails(tournament) },
+                        onHostClick = { onNavigateToUserProfile(tournament.creatorId) }
+                    )
                 }
             }
         }
@@ -191,7 +267,9 @@ fun CompetitionsPreview() {
             onNavigateBack = {},
             onNavigateToWriting = {},
             onNavigateToProfile = {},
-            onNavigateToLeaderboard = {}
+            onNavigateToLeaderboard = {},
+            onNavigateToTournamentDetails = {},
+            onNavigateToUserProfile = {}
         )
     }
 }

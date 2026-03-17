@@ -1,7 +1,7 @@
 package com.inkr8.data
 
 data class Users(
-    val id: String = "", //<- this caused a crash [= ""] and that fixed it ... o_o
+    val id: String = "",
     val name: String = "",
     val email: String? = null,
     var merit: Long = 1000,
@@ -17,6 +17,10 @@ data class Users(
     val rankedLossStreak: Long = 0,
     val currentlyInRanked: Boolean = false,
     val rankedSessionStartedAt: Long? = null,
+    val tournamentsPlayed: Long = 0,
+    val tournamentsWon: Long = 0,
+    val totalMeritEarned: Long = 0,
+    val tipsReceived: Long = 0
 
     )
 

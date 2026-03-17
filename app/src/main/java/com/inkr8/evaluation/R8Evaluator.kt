@@ -9,7 +9,7 @@ class R8Evaluator : SubmissionEvaluator {
 
     override fun evaluate(submission: Submissions): Evaluation {
 
-        // gpt-4o mini procedure belongs here, no one should take its sit o_o
+        // gpt-4o mini procedure (api call) will belong here, no one should take its sit o_o
 
         return Evaluation(
             submissionId = submission.id,

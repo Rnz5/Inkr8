@@ -61,4 +61,22 @@ object TimeUtils {
         val date = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
         return date.format(Date(timestamp))
     }
+
+    // specifically for tournaments :-)
+    fun formatRemainingTime(targetTimestamp: Long): String {
+        val diff = targetTimestamp - System.currentTimeMillis()
+
+        if (diff <= 0L) return "Ended"
+
+        val totalSeconds = diff / 1000
+        val days = totalSeconds / 86400
+        val hours = (totalSeconds % 86400) / 3600
+        val minutes = (totalSeconds % 3600) / 60
+
+        return when {
+            days > 0 -> "${days}d ${hours}h"
+            hours > 0 -> "${hours}h ${minutes}m"
+            else -> "${minutes}m"
+        }
+    }
 }
