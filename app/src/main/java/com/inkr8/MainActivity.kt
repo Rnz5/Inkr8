@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.inkr8.data.Gamemode
+import com.inkr8.data.OnTopicWriting
 import com.inkr8.data.PlayMode
 import com.inkr8.data.StandardWriting
 import com.inkr8.evaluation.FakeEvaluator
@@ -32,6 +33,8 @@ import com.inkr8.screens.Submissions
 import com.inkr8.screens.Writing
 import com.inkr8.ui.theme.Inkr8Theme
 import com.inkr8.data.Submissions
+import com.inkr8.data.Theme
+import com.inkr8.data.Topic
 import com.inkr8.data.Tournament
 import com.inkr8.data.Users
 import com.inkr8.economy.EconomyConfig
@@ -150,6 +153,7 @@ class MainActivity : ComponentActivity() {
 
             val submissionRepository = remember { FirestoreSubmissionRepository() }
             val submissionProcessor = remember { SubmissionProcessor(FakeEvaluator()) }
+            val tournamentRepository = remember { FirestoreTournamentRepository() }
 
 
             Inkr8Theme {
@@ -158,6 +162,8 @@ class MainActivity : ComponentActivity() {
                 var selectedTournament by remember { mutableStateOf<Tournament?>(null) }
                 var currentScreen by remember { mutableStateOf(Screen.home) }
                 var selectedProfileUserId by remember { mutableStateOf<String?>(null) }
+                var activeTournamentId by remember { mutableStateOf<String?>(null) }
+
 
                 when(currentScreen) {
                     Screen.home -> HomeScreen(
@@ -172,9 +178,11 @@ class MainActivity : ComponentActivity() {
                         pantheonPosition = pantheonPosition,
                         onNavigateBack = { currentScreen = Screen.home },
                         onNavigateToWriting = { gamemode ->
+                            activeTournamentId = null
                             currentGamemode = gamemode
                             currentPlayMode = PlayMode.Practice
-                            currentScreen = Screen.writing },
+                            currentScreen = Screen.writing
+                        },
                         onNavigateToProfile = { currentScreen = Screen.profile }
                     )
                     Screen.competitions -> Competitions(
@@ -191,10 +199,10 @@ class MainActivity : ComponentActivity() {
                             )
 
                             if (currentUser!!.merit >= entryCost) {
-
                                 userRepository.addMerit(currentUser!!.id, -entryCost)
                                 userRepository.startRankedSession(currentUser!!.id)
 
+                                activeTournamentId = null
                                 currentGamemode = gamemode
                                 currentPlayMode = PlayMode.Ranked
                                 currentScreen = Screen.writing
@@ -216,6 +224,7 @@ class MainActivity : ComponentActivity() {
                     Screen.writing -> Writing(
                         gamemode = currentGamemode ?: StandardWriting,
                         playMode = currentPlayMode,
+                        tournamentContext = if (currentPlayMode is PlayMode.Tournament) selectedTournament else null,
                         onAddSubmission = { submission: Submissions ->
                             val submissionWithAuthor = submission.copy(
                                 authorId = currentUser!!.id
@@ -224,67 +233,112 @@ class MainActivity : ComponentActivity() {
                             val finalSubmission = submissionProcessor.process(submissionWithAuthor)
 
                             val isRanked = finalSubmission.playmode == "RANKED"
+                            val isTournament = finalSubmission.playmode == "TOURNAMENT" && activeTournamentId != null
 
-                            submissionRepository.addSubmission(
-                                submission = finalSubmission,
-                                onSuccess = {
+                            if (isTournament) {
+                                tournamentRepository.submitToTournament(
+                                    tournamentId = activeTournamentId!!,
+                                    userId = currentUser!!.id,
+                                    submission = finalSubmission,
+                                    onSuccess = {
+                                        Toast.makeText(
+                                            context,
+                                            "Tournament submission sent",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
 
-                                    if (isRanked) {
-
-                                        val finalScore = finalSubmission.evaluation?.finalScore ?: 0.0
-
-                                        val newRating = RatingCalculator.calculateNewRating(currentRating = currentUser!!.rating, score = finalScore)
-
-                                        val isWin = finalScore >= 60.0 // <- this might change in the future to 51, i will see
-                                        val newWinStreak = if (isWin) currentUser!!.rankedWinStreak + 1 else 0
-
-                                        var rep = currentUser!!.reputation
-
-                                        rep = ReputationManager.onRankedCompleted(rep)
-
-                                        if (newWinStreak > 0 && newWinStreak % 5 == 0L) {
-                                            rep = ReputationManager.consistencyBonus(rep)
+                                        userRepository.getUserById(currentUser!!.id) { updatedUser ->
+                                            currentUser = updatedUser
                                         }
 
-                                        userRepository.updateReputation(currentUser!!.id, rep)
+                                        currentScreen = Screen.tournamentDetails
+                                    },
+                                    onError = { e: Exception ->
+                                        Toast.makeText(
+                                            context,
+                                            e.message ?: "Failed to submit to tournament",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        e.printStackTrace()
+                                    }
+                                )
+                            } else {
+                                submissionRepository.addSubmission(
+                                    submission = finalSubmission,
+                                    onSuccess = {
 
-                                        val newLossStreak = if (!isWin) currentUser!!.rankedLossStreak + 1 else 0
+                                        if (isRanked) {
 
-                                        userRepository.updateRatingAndStreak(
+                                            val finalScore = finalSubmission.evaluation?.finalScore ?: 0.0
+
+                                            val newRating = RatingCalculator.calculateNewRating(
+                                                currentRating = currentUser!!.rating,
+                                                score = finalScore
+                                            )
+
+                                            val isWin = finalScore >= 60.0
+                                            val newWinStreak = if (isWin) currentUser!!.rankedWinStreak + 1 else 0
+
+                                            var rep = currentUser!!.reputation
+
+                                            rep = ReputationManager.onRankedCompleted(rep)
+
+                                            if (newWinStreak > 0 && newWinStreak % 5 == 0L) {
+                                                rep = ReputationManager.consistencyBonus(rep)
+                                            }
+
+                                            userRepository.updateReputation(currentUser!!.id, rep)
+
+                                            val newLossStreak = if (!isWin) currentUser!!.rankedLossStreak + 1 else 0
+
+                                            userRepository.updateRatingAndStreak(
+                                                userId = currentUser!!.id,
+                                                newRating = newRating,
+                                                winStreak = newWinStreak,
+                                                lossStreak = newLossStreak
+                                            )
+
+                                            userRepository.finishRankedSession(currentUser!!.id)
+                                        }
+
+                                        val meritEarned = finalSubmission.evaluation?.meritEarned ?: 0
+
+                                        userRepository.addMerit(
                                             userId = currentUser!!.id,
-                                            newRating = newRating,
-                                            winStreak = newWinStreak,
-                                            lossStreak = newLossStreak
+                                            amount = meritEarned
                                         )
 
+                                        userRepository.getUserById(currentUser!!.id) { updatedUser ->
+                                            currentUser = updatedUser
+                                        }
+
+                                        currentScreen = Screen.results
+                                    },
+                                    onError = { e: Exception ->
+
+                                        if (finalSubmission.playmode == "RANKED") {
+                                            val refund = RankedCostCalculator.calculateCost(
+                                                EconomyConfig.BASE_COST_RANKED,
+                                                currentUser!!.rankedWinStreak,
+                                                currentUser!!.rankedLossStreak,
+                                                currentUser!!.reputation
+                                            )
+                                            userRepository.addMerit(userId = currentUser!!.id, amount = refund)
+                                        }
+
                                         userRepository.finishRankedSession(currentUser!!.id)
+                                        e.printStackTrace()
                                     }
-
-                                    val meritEarned = finalSubmission.evaluation?.meritEarned ?: 0
-                                    val newScore = finalSubmission.evaluation?.finalScore ?: 0.0
-
-                                    userRepository.addMerit(userId = currentUser!!.id, amount = meritEarned)
-
-                                    userRepository.getUserById(currentUser!!.id) { updatedUser ->
-                                        currentUser = updatedUser
-                                    }
-
-                                    currentScreen = Screen.results
-                                },
-                                onError = { e: Exception ->
-
-                                    //refund system if somehow the submission db fails xD
-                                    if (finalSubmission.playmode == "RANKED") {
-
-                                        val refund = RankedCostCalculator.calculateCost(EconomyConfig.BASE_COST_RANKED, currentUser!!.rankedWinStreak, currentUser!!.rankedLossStreak, currentUser!!.reputation)
-                                        userRepository.addMerit(userId = currentUser!!.id, amount = refund)
-                                    }
-                                    userRepository.finishRankedSession(currentUser!!.id)
-                                    e.printStackTrace()
-                                }
-                            )
+                                )
+                            }
                         },
-                        onNavigateBack = { currentScreen = Screen.home },
+                        onNavigateBack = {
+                            currentScreen = if (activeTournamentId != null && currentPlayMode is PlayMode.Tournament) {
+                                Screen.tournamentDetails
+                            } else {
+                                Screen.home
+                            }
+                        },
                         onNavigateToResults = { currentScreen = Screen.results }
                     )
                     Screen.submissions -> {
@@ -340,32 +394,58 @@ class MainActivity : ComponentActivity() {
                         onNavigateBack = { currentScreen = Screen.competitions }
                     )
                     Screen.tournamentDetails -> {
-                        val tournament = selectedTournament
-                        val tournamentRepository = remember { FirestoreTournamentRepository() }
+                        val initialTournament = selectedTournament
 
-                        var isEnrolled by remember(tournament?.id, currentUser!!.id) { mutableStateOf(false) }
-                        var isEnrolling by remember(tournament?.id, currentUser!!.id) { mutableStateOf(false) }
+                        var liveTournament by remember(initialTournament?.id) { mutableStateOf(initialTournament) }
+                        var isEnrolled by remember(initialTournament?.id, currentUser!!.id) { mutableStateOf(false) }
+                        var isSubmitted by remember(initialTournament?.id, currentUser!!.id) { mutableStateOf(false) }
+                        var isEnrolling by remember(initialTournament?.id, currentUser!!.id) { mutableStateOf(false) }
 
-                        DisposableEffect(tournament?.id, currentUser!!.id) {
-                            if (tournament == null) {
+                        DisposableEffect(initialTournament?.id, currentUser!!.id) {
+                            if (initialTournament == null) {
                                 onDispose {}
                             } else {
-                                val registration = tournamentRepository.listenToEnrollmentStatus(
-                                    tournamentId = tournament.id,
+                                val tournamentRegistration = tournamentRepository.listenToTournament(
+                                    tournamentId = initialTournament.id,
+                                    onUpdate = { updatedTournament ->
+                                        liveTournament = updatedTournament
+                                    },
+                                    onError = { e: Exception ->
+                                        e.printStackTrace()
+                                    }
+                                )
+
+                                val enrollmentRegistration = tournamentRepository.listenToEnrollmentStatus(
+                                    tournamentId = initialTournament.id,
                                     userId = currentUser!!.id,
                                     onUpdate = { enrolled ->
                                         isEnrolled = enrolled
                                     },
-                                    onError = { e ->
+                                    onError = { e: Exception  ->
+                                        e.printStackTrace()
+                                    }
+                                )
+
+                                val submissionRegistration = tournamentRepository.listenToSubmissionStatus(
+                                    tournamentId = initialTournament.id,
+                                    userId = currentUser!!.id,
+                                    onUpdate = { submitted ->
+                                        isSubmitted = submitted
+                                    },
+                                    onError = { e: Exception  ->
                                         e.printStackTrace()
                                     }
                                 )
 
                                 onDispose {
-                                    registration.remove()
+                                    tournamentRegistration.remove()
+                                    enrollmentRegistration.remove()
+                                    submissionRegistration.remove()
                                 }
                             }
                         }
+
+                        val tournament = liveTournament
 
                         if (tournament != null) {
                             TournamentDetails(
@@ -376,6 +456,7 @@ class MainActivity : ComponentActivity() {
                                     currentScreen = Screen.userProfile
                                 },
                                 isEnrolled = isEnrolled,
+                                isSubmitted = isSubmitted,
                                 isEnrolling = isEnrolling,
                                 onEnroll = {
                                     if (isEnrolled || isEnrolling) return@TournamentDetails
@@ -396,7 +477,7 @@ class MainActivity : ComponentActivity() {
                                                 isEnrolling = false
                                             }
                                         },
-                                        onError = { e ->
+                                        onError = { e: Exception  ->
                                             Toast.makeText(
                                                 context,
                                                 e.message ?: "Failed to enroll",
@@ -405,6 +486,32 @@ class MainActivity : ComponentActivity() {
                                             isEnrolling = false
                                         }
                                     )
+                                },
+                                onSubmitToTournament = {
+                                    activeTournamentId = tournament.id
+                                    selectedTournament = tournament
+
+                                    currentGamemode = when (tournament.gamemode) {
+                                        "ON_TOPIC" -> OnTopicWriting(
+                                            theme = Theme(
+                                                id = tournament.themeId ?: "",
+                                                name = tournament.themeName ?: "Unknown Theme",
+                                                description = "",
+                                                difficulty = ""
+                                            ),
+                                            topic = Topic(
+                                                id = tournament.topicId ?: "",
+                                                name = tournament.topicName ?: "Unknown Topic",
+                                                description = "",
+                                                difficulty = ""
+                                            )
+                                        )
+
+                                        else -> StandardWriting
+                                    }
+
+                                    currentPlayMode = PlayMode.Tournament(tournament.id)
+                                    currentScreen = Screen.writing
                                 }
                             )
                         } else {

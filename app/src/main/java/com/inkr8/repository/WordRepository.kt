@@ -19,4 +19,20 @@ class WordRepository(
     suspend fun getSingleRandomWord(): Words? {
         return getRandomWords(10).randomOrNull()
     }
+
+    suspend fun getWordsByTexts(wordTexts: List<String>): List<Words> {
+        if (wordTexts.isEmpty()) return emptyList()
+
+        val snapshot = FirebaseFirestore.getInstance()
+            .collection("words")
+            .whereIn("word", wordTexts)
+            .get()
+            .await()
+
+        val fetched = snapshot.toObjects(Words::class.java)
+
+        return wordTexts.mapNotNull { text ->
+            fetched.find { it.word.equals(text, ignoreCase = true) }
+        }
+    }
 }

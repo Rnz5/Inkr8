@@ -45,8 +45,10 @@ fun TournamentDetails(
     tournament: Tournament,
     onNavigateBack: () -> Unit,
     onEnroll: () -> Unit = {},
+    onSubmitToTournament: () -> Unit = {},
     onHostClick: () -> Unit = {},
     isEnrolled: Boolean = false,
+    isSubmitted: Boolean = false,
     isEnrolling: Boolean = false
 ){
     val formatter = NumberFormat.getNumberInstance(Locale.US)
@@ -143,18 +145,44 @@ fun TournamentDetails(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                val actionText = when (tournament.status) {
+                    TournamentStatus.ENROLLING -> when {
+                        isEnrolled -> "Already Enrolled"
+                        isEnrolling -> "Enrolling..."
+                        else -> "Enroll - $formattedEntryFee Merit"
+                    }
+
+                    TournamentStatus.ACTIVE -> when {
+                        !isEnrolled -> "Enrollment Closed"
+                        isSubmitted -> "Submission Sent"
+                        else -> "Submit to Tournament"
+                    }
+
+                    TournamentStatus.EVALUATING -> "R8 is Evaluating"
+                    TournamentStatus.COMPLETED -> "View Results"
+                    TournamentStatus.CANCELLED -> "Tournament Cancelled"
+                }
+
+                val actionEnabled = when (tournament.status) {
+                    TournamentStatus.ENROLLING -> !isEnrolled && !isEnrolling
+                    TournamentStatus.ACTIVE -> isEnrolled && !isSubmitted
+                    TournamentStatus.EVALUATING -> false
+                    TournamentStatus.COMPLETED -> false
+                    TournamentStatus.CANCELLED -> false
+                }
+
                 Button(
-                    onClick = onEnroll,
-                    enabled = tournament.status == TournamentStatus.ENROLLING && !isEnrolled && !isEnrolling,
+                    onClick = {
+                        when (tournament.status) {
+                            TournamentStatus.ENROLLING -> onEnroll()
+                            TournamentStatus.ACTIVE -> onSubmitToTournament()
+                            else -> {}
+                        }
+                    },
+                    enabled = actionEnabled,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        when {
-                            isEnrolled -> "Already Enrolled"
-                            isEnrolling -> "Enrolling..."
-                            else -> "Enroll - $formattedEntryFee Merit"
-                        }
-                    )
+                    Text(actionText)
                 }
             }
         }

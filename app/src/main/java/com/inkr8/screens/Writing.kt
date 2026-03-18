@@ -37,6 +37,7 @@ import com.inkr8.data.OnTopicWriting
 import com.inkr8.data.PlayMode
 import com.inkr8.data.StandardWriting
 import com.inkr8.data.Submissions
+import com.inkr8.data.Tournament
 import com.inkr8.data.Words
 import com.inkr8.evaluation.SubmissionFactory
 import com.inkr8.repository.WordRepository
@@ -59,6 +60,7 @@ fun WordButton(word: Words, used: Boolean, onClick: () -> Unit) { //i am a freak
 fun Writing(
     gamemode: Gamemode,
     playMode: PlayMode,
+    tournamentContext: Tournament? = null,
     onAddSubmission: (Submissions) -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToResults: () -> Unit
@@ -69,12 +71,20 @@ fun Writing(
 
     var userText by remember { mutableStateOf("") }
 
-    LaunchedEffect(gamemode) {
-        val required = gamemode.requiredWords ?: 0
-        if (required > 0) {
-            selectedWords = wordRepository.getRandomWords(required.toLong())
-        } else {
-            selectedWords = emptyList()
+    LaunchedEffect(gamemode, playMode, tournamentContext) {
+        selectedWords = when {
+            playMode is PlayMode.Tournament && tournamentContext != null -> {
+                wordRepository.getWordsByTexts(tournamentContext.requiredWords)
+            }
+
+            else -> {
+                val required = gamemode.requiredWords ?: 0
+                if (required > 0) {
+                    wordRepository.getRandomWords(required.toLong())
+                } else {
+                    emptyList()
+                }
+            }
         }
     }
 

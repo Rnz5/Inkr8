@@ -178,10 +178,7 @@ class FirestoreTournamentRepository {
             transaction.set(tournamentSubmissionRef, submission)
             transaction.set(globalSubmissionRef, submission)
 
-            transaction.update(tournamentRef, "submissionsCount", tournament.submissionsCount + 1)
-
-        }.addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onError(it) }
+        }.addOnSuccessListener { onSuccess() }.addOnFailureListener { onError(it) }
     }
 
     fun getLeaderboard(
@@ -305,6 +302,52 @@ class FirestoreTournamentRepository {
         return tournamentsCollection
             .document(tournamentId)
             .collection("enrollments")
+            .document(userId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onError(error)
+                    return@addSnapshotListener
+                }
+
+                onUpdate(snapshot?.exists() == true)
+            }
+    }
+
+    fun listenToTournament(
+        tournamentId: String,
+        onUpdate: (Tournament?) -> Unit,
+        onError: (Exception) -> Unit
+    ): ListenerRegistration {
+        return tournamentsCollection
+            .document(tournamentId)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onError(error)
+                    return@addSnapshotListener
+                }
+
+                if (snapshot == null || !snapshot.exists()) {
+                    onUpdate(null)
+                    return@addSnapshotListener
+                }
+
+                try {
+                    onUpdate(snapshot.toObject(Tournament::class.java))
+                } catch (e: Exception) {
+                    onError(e)
+                }
+            }
+    }
+
+    fun listenToSubmissionStatus(
+        tournamentId: String,
+        userId: String,
+        onUpdate: (Boolean) -> Unit,
+        onError: (Exception) -> Unit
+    ): ListenerRegistration {
+        return tournamentsCollection
+            .document(tournamentId)
+            .collection("submissions")
             .document(userId)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {

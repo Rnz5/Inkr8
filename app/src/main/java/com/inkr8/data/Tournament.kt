@@ -21,7 +21,14 @@ data class Tournament(
     val status: TournamentStatus = TournamentStatus.ENROLLING,
     val strictnessMultiplier: Double = 0.92,
     val createdAt: Long = System.currentTimeMillis(),
-    val gamemode: String = "STANDARD"
+    val gamemode: String = "STANDARD",
+
+    val requiredWords: List<String> = emptyList(),
+
+    val themeId: String? = null,
+    val themeName: String? = null,
+    val topicId: String? = null,
+    val topicName: String? = null
 )
 
 data class TournamentRequirements(
