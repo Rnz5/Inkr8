@@ -242,7 +242,7 @@ class FirestoreTournamentRepository {
 
                 val tournaments = snapshot.documents.mapNotNull { doc ->
                     try {
-                        doc.toObject(Tournament::class.java)
+                        doc.toObject(Tournament::class.java)?.copy(id = doc.id)
                     } catch (e: Exception) {
                         Log.e("TournamentRepository", "Failed to parse tournament ${doc.id}", e)
                         null
@@ -332,7 +332,7 @@ class FirestoreTournamentRepository {
                 }
 
                 try {
-                    onUpdate(snapshot.toObject(Tournament::class.java))
+                    onUpdate(snapshot.toObject(Tournament::class.java)?.copy(id = snapshot.id))
                 } catch (e: Exception) {
                     onError(e)
                 }

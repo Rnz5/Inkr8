@@ -47,6 +47,7 @@ import com.inkr8.repository.FirestoreTournamentRepository
 import com.inkr8.repository.UserRepository
 import com.inkr8.screens.LeaderboardScreen
 import com.inkr8.screens.TournamentDetails
+import com.inkr8.screens.TournamentResultsScreen
 
 class MainActivity : ComponentActivity() {
 
@@ -477,7 +478,7 @@ class MainActivity : ComponentActivity() {
                                                 isEnrolling = false
                                             }
                                         },
-                                        onError = { e: Exception  ->
+                                        onError = { e: Exception ->
                                             Toast.makeText(
                                                 context,
                                                 e.message ?: "Failed to enroll",
@@ -495,23 +496,22 @@ class MainActivity : ComponentActivity() {
                                         "ON_TOPIC" -> OnTopicWriting(
                                             theme = Theme(
                                                 id = tournament.themeId ?: "",
-                                                name = tournament.themeName ?: "Unknown Theme",
-                                                description = "",
-                                                difficulty = ""
+                                                name = tournament.themeName ?: "Unknown Theme"
                                             ),
                                             topic = Topic(
                                                 id = tournament.topicId ?: "",
-                                                name = tournament.topicName ?: "Unknown Topic",
-                                                description = "",
-                                                difficulty = ""
+                                                name = tournament.topicName ?: "Unknown Topic"
                                             )
                                         )
-
                                         else -> StandardWriting
                                     }
 
                                     currentPlayMode = PlayMode.Tournament(tournament.id)
                                     currentScreen = Screen.writing
+                                },
+                                onViewResults = {
+                                    selectedTournament = tournament
+                                    currentScreen = Screen.tournamentResults
                                 }
                             )
                         } else {
@@ -523,8 +523,7 @@ class MainActivity : ComponentActivity() {
                         var viewedPantheonPosition by remember { mutableStateOf<Int?>(null) }
 
                         LaunchedEffect(selectedProfileUserId) {
-                            val userId = selectedProfileUserId
-                            if (userId == null) return@LaunchedEffect
+                            val userId = selectedProfileUserId ?: return@LaunchedEffect
 
                             userRepository.getUserById(userId) { user ->
                                 viewedUser = user
@@ -559,7 +558,42 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+                    Screen.tournamentResults -> {
+                        val tournament = selectedTournament
+                        var leaderboard by remember(tournament?.id) { mutableStateOf<List<Submissions>>(emptyList()) }
+                        var isLoading by remember(tournament?.id) { mutableStateOf(true) }
 
+                        LaunchedEffect(tournament?.id) {
+                            if (tournament == null) {
+                                isLoading = false
+                                return@LaunchedEffect
+                            }
+
+                            tournamentRepository.getLeaderboard(
+                                tournamentId = tournament.id,
+                                onSuccess = { results ->
+                                    leaderboard = results
+                                    isLoading = false
+                                },
+                                onError = { e ->
+                                    e.printStackTrace()
+                                    leaderboard = emptyList()
+                                    isLoading = false
+                                }
+                            )
+                        }
+
+                        if (tournament != null) {
+                            TournamentResultsScreen(
+                                tournament = tournament,
+                                leaderboard = leaderboard,
+                                isLoading = isLoading,
+                                onNavigateBack = { currentScreen = Screen.tournamentDetails }
+                            )
+                        } else {
+                            currentScreen = Screen.competitions
+                        }
+                    }
                 }
             }
         }
@@ -576,5 +610,6 @@ enum class Screen {
     results,
     leaderboard,
     tournamentDetails,
+    tournamentResults,
     userProfile
 }

@@ -163,8 +163,12 @@ fun HomeScreen(
                                 showSentence = true
                                 isSpending = false
                             },
-                            onError = {
-                                Toast.makeText(context, EconomyConfig.insufficientMerit(), Toast.LENGTH_SHORT).show()
+                            onError = { e ->
+                                Toast.makeText(
+                                    context,
+                                    e.message ?: "Failed to spend Merit",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                                 isSpending = false
                             }
 

@@ -46,6 +46,7 @@ fun TournamentDetails(
     onNavigateBack: () -> Unit,
     onEnroll: () -> Unit = {},
     onSubmitToTournament: () -> Unit = {},
+    onViewResults: () -> Unit = {},
     onHostClick: () -> Unit = {},
     isEnrolled: Boolean = false,
     isSubmitted: Boolean = false,
@@ -167,7 +168,7 @@ fun TournamentDetails(
                     TournamentStatus.ENROLLING -> !isEnrolled && !isEnrolling
                     TournamentStatus.ACTIVE -> isEnrolled && !isSubmitted
                     TournamentStatus.EVALUATING -> false
-                    TournamentStatus.COMPLETED -> false
+                    TournamentStatus.COMPLETED -> true
                     TournamentStatus.CANCELLED -> false
                 }
 
@@ -176,6 +177,7 @@ fun TournamentDetails(
                         when (tournament.status) {
                             TournamentStatus.ENROLLING -> onEnroll()
                             TournamentStatus.ACTIVE -> onSubmitToTournament()
+                            TournamentStatus.COMPLETED -> onViewResults()
                             else -> {}
                         }
                     },
