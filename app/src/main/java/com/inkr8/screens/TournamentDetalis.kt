@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.inkr8.R
 import com.inkr8.data.Tournament
+import com.inkr8.data.TournamentLeaderboardEntry
 import com.inkr8.data.TournamentStatus
 import com.inkr8.economy.TournamentRewardCalculator
 import com.inkr8.utils.TimeUtils
@@ -50,7 +51,8 @@ fun TournamentDetails(
     onHostClick: () -> Unit = {},
     isEnrolled: Boolean = false,
     isSubmitted: Boolean = false,
-    isEnrolling: Boolean = false
+    isEnrolling: Boolean = false,
+    completedLeaderboard: List<TournamentLeaderboardEntry> = emptyList()
 ){
     val formatter = NumberFormat.getNumberInstance(Locale.US)
     val formattedPrizePool = formatter.format(tournament.prizePool)
@@ -94,9 +96,7 @@ fun TournamentDetails(
             modifier = Modifier.fillMaxWidth().weight(1f),
             shape = RoundedCornerShape(20.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(
                 modifier = Modifier.fillMaxSize().padding(16.dp)
@@ -118,15 +118,33 @@ fun TournamentDetails(
                     modifier = Modifier.fillMaxWidth().weight(1f),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    itemsIndexed(rewardPercentages) { index, percent ->
-                        val merit = (tournament.prizePool * percent).toLong()
+                    if (tournament.status == TournamentStatus.COMPLETED && completedLeaderboard.isNotEmpty()) {
+                        itemsIndexed(completedLeaderboard) { index, entry ->
+                            val merit = entry.submission.evaluation?.meritEarned ?: 0L
+                            val scorePercent = if (tournament.prizePool > 0) {
+                                (merit.toDouble() / tournament.prizePool.toDouble()) * 100.0
+                            } else {
+                                0.0
+                            }
 
-                        RewardDistributionRow(
-                            place = formatPlace(index + 1),
-                            merit = formatter.format(merit),
-                            percent = "${String.format(Locale.US, "%.2f", percent * 100)}%",
-                            participant = "TBD"
-                        )
+                            RewardDistributionRow(
+                                place = formatPlace(index + 1),
+                                merit = formatter.format(merit),
+                                percent = "${String.format(Locale.US, "%.2f", scorePercent)}%",
+                                participant = entry.user?.name?.ifBlank { null } ?: entry.submission.authorId
+                            )
+                        }
+                    } else {
+                        itemsIndexed(rewardPercentages) { index, percent ->
+                            val merit = (tournament.prizePool * percent).toLong()
+
+                            RewardDistributionRow(
+                                place = formatPlace(index + 1),
+                                merit = formatter.format(merit),
+                                percent = "${String.format(Locale.US, "%.2f", percent * 100)}%",
+                                participant = "TBD"
+                            )
+                        }
                     }
                 }
 

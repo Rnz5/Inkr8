@@ -5,8 +5,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.inkr8.data.Users
 import com.inkr8.economy.EconomyConfig
+import com.google.firebase.functions.FirebaseFunctions
 
 class UserRepository(
+    private val functions: FirebaseFunctions = FirebaseFunctions.getInstance(),
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
 
@@ -20,6 +22,7 @@ class UserRepository(
                 onResult(users)
             }
     }
+
     fun ensureUserExists(
         uid: String,
         name: String,
@@ -31,58 +34,42 @@ class UserRepository(
         docRef.get()
             .addOnSuccessListener { snapshot ->
                 if (snapshot.exists()) {
-                    val user = snapshot.toObject(Users::class.java)!!
-                    onReady(user)
+                    val user = snapshot.toObject(Users::class.java)
+                    if (user != null) {
+                        onReady(user)
+                    }
                 } else {
-                    val newUser = Users(
-                        id = uid,
-                        name = name,
-                        email = email
-                    )
-
-                    docRef.set(newUser)
-                        .addOnSuccessListener {
-                            onReady(newUser)
+                    docRef.addSnapshotListener { newSnapshot, _ ->
+                        if (newSnapshot != null && newSnapshot.exists()) {
+                            val user = newSnapshot.toObject(Users::class.java)
+                            if (user != null) {
+                                onReady(user)
+                            }
                         }
-                        .addOnFailureListener { e ->
-                            e.printStackTrace()
-                        }
+                    }
                 }
             }
             .addOnFailureListener { e ->
                 e.printStackTrace()
-
             }
     }
 
-    fun spendMerit(
-        userId: String,
-        amount: Long,
+    fun applyMeritAction(
+        action: String,
         onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ) {
+        val data = hashMapOf(
+            "action" to action
+        )
 
-        val userRef = usersCollection.document(userId)
-
-        firestore.runTransaction { transaction ->
-
-            val snapshot = transaction.get(userRef)
-            val currentMerit = (snapshot.get("merit") as? Number)?.toLong() ?: 0L
-
-            if (currentMerit < amount) {
-                throw Exception(EconomyConfig.insufficientMerit())
-            }else{
-                transaction.update(userRef, "merit", currentMerit - amount)
-            }
-            null
-        }
+        functions
+            .getHttpsCallable("applyMeritAction")
+            .call(data)
             .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onError(it) }
-    }
-
-    fun addMerit(userId: String, amount: Long) {
-        usersCollection.document(userId)
-            .update("merit", FieldValue.increment(amount))
+            .addOnFailureListener { error: Exception ->
+                onError(Exception(error.message ?: "Failed to apply merit action"))
+            }
     }
 
     fun getUserById(
@@ -150,7 +137,29 @@ class UserRepository(
         usersCollection.document(userId).update(updates)
     }
 
+    fun getUsersByIds(
+        userIds: List<String>,
+        onResult: (Map<String, Users>) -> Unit
+    ) {
+        val distinctIds = userIds.distinct().filter { it.isNotBlank() }
 
+        if (distinctIds.isEmpty()) {
+            onResult(emptyMap())
+            return
+        }
+
+        firestore.collection("users")
+            .whereIn("id", distinctIds)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val users = snapshot.toObjects(Users::class.java)
+                onResult(users.associateBy { it.id })
+            }
+            .addOnFailureListener {
+                it.printStackTrace()
+                onResult(emptyMap())
+            }
+    }
 
 }
 

@@ -36,6 +36,8 @@ import com.inkr8.data.Submissions
 import com.inkr8.data.Theme
 import com.inkr8.data.Topic
 import com.inkr8.data.Tournament
+import com.inkr8.data.TournamentLeaderboardEntry
+import com.inkr8.data.TournamentStatus
 import com.inkr8.data.Users
 import com.inkr8.economy.EconomyConfig
 import com.inkr8.economy.RankedCostCalculator
@@ -200,15 +202,32 @@ class MainActivity : ComponentActivity() {
                             )
 
                             if (currentUser!!.merit >= entryCost) {
-                                userRepository.addMerit(currentUser!!.id, -entryCost)
-                                userRepository.startRankedSession(currentUser!!.id)
+                                userRepository.applyMeritAction(
+                                    action = "ENTER_RANKED",
+                                    onSuccess = {
+                                        userRepository.getUserById(currentUser!!.id) { updatedUser ->
+                                            currentUser = updatedUser
+                                        }
 
-                                activeTournamentId = null
-                                currentGamemode = gamemode
-                                currentPlayMode = PlayMode.Ranked
-                                currentScreen = Screen.writing
+                                        activeTournamentId = null
+                                        currentGamemode = gamemode
+                                        currentPlayMode = PlayMode.Ranked
+                                        currentScreen = Screen.writing
+                                    },
+                                    onError = { e ->
+                                        Toast.makeText(
+                                            context,
+                                            e.message ?: "Failed to enter ranked",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                )
                             } else {
-                                // show toast
+                                Toast.makeText(
+                                    context,
+                                    "Not enough Merit",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                         },
                         onNavigateToProfile = { currentScreen = Screen.profile },
@@ -302,13 +321,6 @@ class MainActivity : ComponentActivity() {
                                             userRepository.finishRankedSession(currentUser!!.id)
                                         }
 
-                                        val meritEarned = finalSubmission.evaluation?.meritEarned ?: 0
-
-                                        userRepository.addMerit(
-                                            userId = currentUser!!.id,
-                                            amount = meritEarned
-                                        )
-
                                         userRepository.getUserById(currentUser!!.id) { updatedUser ->
                                             currentUser = updatedUser
                                         }
@@ -316,17 +328,6 @@ class MainActivity : ComponentActivity() {
                                         currentScreen = Screen.results
                                     },
                                     onError = { e: Exception ->
-
-                                        if (finalSubmission.playmode == "RANKED") {
-                                            val refund = RankedCostCalculator.calculateCost(
-                                                EconomyConfig.BASE_COST_RANKED,
-                                                currentUser!!.rankedWinStreak,
-                                                currentUser!!.rankedLossStreak,
-                                                currentUser!!.reputation
-                                            )
-                                            userRepository.addMerit(userId = currentUser!!.id, amount = refund)
-                                        }
-
                                         userRepository.finishRankedSession(currentUser!!.id)
                                         e.printStackTrace()
                                     }
@@ -401,6 +402,7 @@ class MainActivity : ComponentActivity() {
                         var isEnrolled by remember(initialTournament?.id, currentUser!!.id) { mutableStateOf(false) }
                         var isSubmitted by remember(initialTournament?.id, currentUser!!.id) { mutableStateOf(false) }
                         var isEnrolling by remember(initialTournament?.id, currentUser!!.id) { mutableStateOf(false) }
+                        var completedLeaderboard by remember(initialTournament?.id) { mutableStateOf<List<TournamentLeaderboardEntry>>(emptyList()) }
 
                         DisposableEffect(initialTournament?.id, currentUser!!.id) {
                             if (initialTournament == null) {
@@ -443,6 +445,33 @@ class MainActivity : ComponentActivity() {
                                     enrollmentRegistration.remove()
                                     submissionRegistration.remove()
                                 }
+                            }
+                        }
+
+                        LaunchedEffect(liveTournament?.id, liveTournament?.status) {
+                            val tournament = liveTournament ?: return@LaunchedEffect
+
+                            if (tournament.status == TournamentStatus.COMPLETED) {
+                                tournamentRepository.getLeaderboard(
+                                    tournamentId = tournament.id,
+                                    onSuccess = { results ->
+                                        val authorIds = results.map { it.authorId }
+                                        userRepository.getUsersByIds(authorIds) { usersMap ->
+                                            completedLeaderboard = results.map { submission ->
+                                                TournamentLeaderboardEntry(
+                                                    submission = submission,
+                                                    user = usersMap[submission.authorId]
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onError = { e ->
+                                        e.printStackTrace()
+                                        completedLeaderboard = emptyList()
+                                    }
+                                )
+                            } else {
+                                completedLeaderboard = emptyList()
                             }
                         }
 
@@ -512,7 +541,8 @@ class MainActivity : ComponentActivity() {
                                 onViewResults = {
                                     selectedTournament = tournament
                                     currentScreen = Screen.tournamentResults
-                                }
+                                },
+                                completedLeaderboard = completedLeaderboard,
                             )
                         } else {
                             currentScreen = Screen.competitions
@@ -560,7 +590,7 @@ class MainActivity : ComponentActivity() {
                     }
                     Screen.tournamentResults -> {
                         val tournament = selectedTournament
-                        var leaderboard by remember(tournament?.id) { mutableStateOf<List<Submissions>>(emptyList()) }
+                        var leaderboard by remember(tournament?.id) { mutableStateOf<List<TournamentLeaderboardEntry>>(emptyList()) }
                         var isLoading by remember(tournament?.id) { mutableStateOf(true) }
 
                         LaunchedEffect(tournament?.id) {
@@ -572,8 +602,17 @@ class MainActivity : ComponentActivity() {
                             tournamentRepository.getLeaderboard(
                                 tournamentId = tournament.id,
                                 onSuccess = { results ->
-                                    leaderboard = results
-                                    isLoading = false
+                                    val authorIds = results.map { it.authorId }
+
+                                    userRepository.getUsersByIds(authorIds) { usersMap ->
+                                        leaderboard = results.map { submission ->
+                                            TournamentLeaderboardEntry(
+                                                submission = submission,
+                                                user = usersMap[submission.authorId]
+                                            )
+                                        }
+                                        isLoading = false
+                                    }
                                 },
                                 onError = { e ->
                                     e.printStackTrace()
@@ -588,7 +627,38 @@ class MainActivity : ComponentActivity() {
                                 tournament = tournament,
                                 leaderboard = leaderboard,
                                 isLoading = isLoading,
-                                onNavigateBack = { currentScreen = Screen.tournamentDetails }
+                                currentUserId = currentUser!!.id,
+                                onNavigateBack = { currentScreen = Screen.tournamentDetails },
+                                onTipUser = { recipientId, amount ->
+                                    tournamentRepository.sendTournamentTip(
+                                        tournamentId = tournament.id,
+                                        tipperId = currentUser!!.id,
+                                        recipientId = recipientId,
+                                        amount = amount,
+                                        onSuccess = {
+                                            Toast.makeText(
+                                                context,
+                                                "Tip sent",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+
+                                            userRepository.getUserById(currentUser!!.id) { updatedUser ->
+                                                currentUser = updatedUser
+                                            }
+                                        },
+                                        onError = { e ->
+                                            Toast.makeText(
+                                                context,
+                                                e.message ?: "Failed to send tip",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    )
+                                },
+                                onOpenUserProfile = { userId ->
+                                    selectedProfileUserId = userId
+                                    currentScreen = Screen.userProfile
+                                }
                             )
                         } else {
                             currentScreen = Screen.competitions

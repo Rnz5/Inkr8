@@ -74,7 +74,7 @@ fun HomeScreen(
     var currentWord by remember { mutableStateOf<Words?>(null) }
 
     var showSentence by remember { mutableStateOf(false) }
-    val userRepository = UserRepository(FirebaseFirestore.getInstance())
+    val userRepository = UserRepository()
     val context = LocalContext.current
     var isSpending by remember { mutableStateOf(false) }
 
@@ -156,9 +156,8 @@ fun HomeScreen(
                     enabled = !isSpending && !showSentence,
                     onClick = {
                         isSpending = true
-                        userRepository.spendMerit(
-                            userId = user.id,
-                            amount = EconomyConfig.SHOW_EXAMPLE_SENTENCE,
+                        userRepository.applyMeritAction(
+                            action = "PURCHASE_EXAMPLE_SENTENCE",
                             onSuccess = {
                                 showSentence = true
                                 isSpending = false
@@ -166,12 +165,11 @@ fun HomeScreen(
                             onError = { e ->
                                 Toast.makeText(
                                     context,
-                                    e.message ?: "Failed to spend Merit",
+                                    e.message ?: "Failed to purchase example sentence",
                                     Toast.LENGTH_SHORT
                                 ).show()
                                 isSpending = false
                             }
-
                         )
                     }
                 ){
