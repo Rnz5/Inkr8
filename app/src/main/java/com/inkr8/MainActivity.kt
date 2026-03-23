@@ -638,7 +638,7 @@ class MainActivity : ComponentActivity() {
                                         onSuccess = {
                                             Toast.makeText(
                                                 context,
-                                                "Tip sent",
+                                                "$amount Merit sent",
                                                 Toast.LENGTH_SHORT
                                             ).show()
 

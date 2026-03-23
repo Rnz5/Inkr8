@@ -41,7 +41,7 @@ val fakeUser = Users(
     name = "MintCake",
     email = "email example",
     merit = 1275,
-    rating = 86,
+    rating = 146,
     reputation = 42,
     bestScore = 91.4,
     submissionsCount = 38,
@@ -68,9 +68,7 @@ fun Profile(
         modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(bottom = 24.dp),
     ) {
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
@@ -176,9 +174,7 @@ fun Profile(
 
         if (isOwner) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 12.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                 horizontalArrangement = Arrangement.Center
             ) {
                 Button(onClick = onNavigateToSubmissions) {
@@ -198,9 +194,7 @@ private fun InfoCardSection(
     Spacer(modifier = Modifier.height(20.dp))
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp)
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
     ) {
         Text(
             text = title,
@@ -211,9 +205,7 @@ private fun InfoCardSection(
     }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {

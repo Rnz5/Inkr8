@@ -18,14 +18,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -122,6 +128,7 @@ fun TournamentResultsScreen(
                             key = { _, item -> item.submission.id }
                         ) { index, entry ->
                             TournamentResultRow(
+                                tournament = tournament,
                                 placement = index + 1,
                                 entry = entry,
                                 currentUserId = currentUserId,
@@ -177,8 +184,10 @@ private fun ResultsHeader() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TournamentResultRow(
+    tournament: Tournament,
     placement: Int,
     entry: TournamentLeaderboardEntry,
     currentUserId: String,
@@ -192,6 +201,7 @@ private fun TournamentResultRow(
     val displayName = entry.user?.name?.ifBlank { null } ?: entry.submission.authorId
     val isSelf = entry.submission.authorId == currentUserId
 
+    var showSubmissionSheet by remember { mutableStateOf(false) }
     var showTipDialog by remember { mutableStateOf(false) }
 
     val cardColor = when (placement) {
@@ -199,6 +209,20 @@ private fun TournamentResultRow(
         2 -> MaterialTheme.colorScheme.secondaryContainer
         3 -> MaterialTheme.colorScheme.tertiaryContainer
         else -> MaterialTheme.colorScheme.surface
+    }
+
+    if (showSubmissionSheet) {
+        TournamentSubmissionBottomSheet(
+            tournament = tournament,
+            entry = entry,
+            isSelf = isSelf,
+            onDismiss = { showSubmissionSheet = false },
+            onOpenProfile = {
+                showSubmissionSheet = false
+                onOpenUserProfile(entry.submission.authorId)
+            },
+            onTip = { amount -> onTipUser(entry.submission.authorId, amount) }
+        )
     }
 
     if (showTipDialog) {
@@ -218,9 +242,7 @@ private fun TournamentResultRow(
         colors = CardDefaults.cardColors(containerColor = cardColor)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -233,11 +255,7 @@ private fun TournamentResultRow(
             Spacer(modifier = Modifier.width(6.dp))
 
             Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
-                    .clickable { onOpenUserProfile(entry.submission.authorId) }
-                    .padding(horizontal = 2.dp, vertical = 2.dp),
+                modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).clickable { showSubmissionSheet = true }.padding(horizontal = 2.dp, vertical = 2.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Image(
@@ -251,6 +269,7 @@ private fun TournamentResultRow(
                 Text(
                     text = displayName,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.weight(1f)
                 )
@@ -284,6 +303,247 @@ private fun TournamentResultRow(
                     Text(
                         text = "Tip",
                         style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TournamentSubmissionBottomSheet(
+    tournament: Tournament,
+    entry: TournamentLeaderboardEntry,
+    isSelf: Boolean,
+    onDismiss: () -> Unit,
+    onOpenProfile: () -> Unit,
+    onTip: (Long) -> Unit
+) {
+    val submission = entry.submission
+    val evaluation = submission.evaluation
+    val displayName = entry.user?.name?.ifBlank { null } ?: submission.authorId
+
+    val scrollState = rememberScrollState()
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().verticalScroll(scrollState).padding(horizontal = 16.dp, vertical = 8.dp).navigationBarsPadding()
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable { onOpenProfile() }.padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.pfpexample),
+                    contentDescription = null,
+                    modifier = Modifier.size(42.dp).clip(RoundedCornerShape(50))
+                )
+
+                Spacer(modifier = Modifier.width(10.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = displayName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Tap to open profile",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp)
+                ) {
+                    Text(
+                        text = submission.content,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        text = "Submission Details",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        InfoMiniBlock(
+                            label = "Score",
+                            value = String.format(Locale.US, "%.2f%%", evaluation?.finalScore ?: 0.0)
+                        )
+                        InfoMiniBlock(
+                            label = "Merit",
+                            value = (evaluation?.meritEarned ?: 0L).toString()
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        InfoMiniBlock(
+                            label = "Characters",
+                            value = submission.characterCount.toString()
+                        )
+                        InfoMiniBlock(
+                            label = "Mode",
+                            value = submission.gamemode
+                        )
+                    }
+
+                    if (tournament.gamemode == "ON_TOPIC") {
+                        HorizontalDivider()
+
+                        Text(
+                            text = "Prompt",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Text(
+                            text = "Theme: ${tournament.themeName ?: "Unknown Theme"}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
+                        Text(
+                            text = "Topic: ${tournament.topicName ?: "Unknown Topic"}",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+
+                    if (tournament.requiredWords.isNotEmpty()) {
+                        HorizontalDivider()
+
+                        Text(
+                            text = "Required Words",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        RequiredWordsFlow(
+                            requiredWords = tournament.requiredWords,
+                            content = submission.content
+                        )
+                    }
+                }
+            }
+
+            if (!isSelf) {
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = "Send Tip",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf(100L, 150L, 200L).forEach { amount ->
+                                Button(
+                                    onClick = { onTip(amount) },
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(amount.toString())
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun InfoMiniBlock(
+    label: String,
+    value: String
+) {
+    Column(
+        modifier = Modifier.width(120.dp)
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun RequiredWordsFlow(
+    requiredWords: List<String>,
+    content: String
+) {
+    val normalizedContentWords = content.lowercase().split("\\W+".toRegex()).filter { it.isNotBlank() }.toSet()
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        requiredWords.chunked(2).forEach { rowWords ->
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                rowWords.forEach { word ->
+                    val used = normalizedContentWords.contains(word.lowercase())
+
+                    FilterChip(
+                        selected = used,
+                        onClick = {},
+                        label = {
+                            Text(
+                                text = if (used) "$word ✓" else word
+                            )
+                        },
+                        enabled = false
                     )
                 }
             }
