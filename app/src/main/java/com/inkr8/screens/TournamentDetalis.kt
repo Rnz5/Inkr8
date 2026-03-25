@@ -357,7 +357,7 @@ private fun TournamentOverviewSection(
 }
 
 @Composable
-private fun OverviewStatBlock(
+fun OverviewStatBlock(
     label: String,
     value: String
 ) {

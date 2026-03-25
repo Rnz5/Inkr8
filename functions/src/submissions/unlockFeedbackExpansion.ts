@@ -41,7 +41,8 @@ export const unlockFeedbackExpansion = onCall(
       }
 
       if (submission.authorId !== uid) {
-        throw new HttpsError("permission-denied", "This submission is not yours.");
+        throw new
+        HttpsError("permission-denied", "This submission is not yours.");
       }
 
       if (submission.playmode !== "PRACTICE") {

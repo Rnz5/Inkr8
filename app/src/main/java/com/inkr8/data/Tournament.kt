@@ -22,6 +22,7 @@ data class Tournament(
     val strictnessMultiplier: Double = 0.92,
     val createdAt: Long = System.currentTimeMillis(),
     val gamemode: String = "STANDARD",
+    val isSystemHosted: Boolean = false,
 
     val requiredWords: List<String> = emptyList(),
 

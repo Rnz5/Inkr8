@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -70,7 +68,8 @@ fun Competitions(
     onNavigateToProfile: () -> Unit,
     onNavigateToLeaderboard: () -> Unit,
     onNavigateToTournamentDetails: (Tournament) -> Unit,
-    onNavigateToUserProfile: (String) -> Unit
+    onNavigateToUserProfile: (String) -> Unit,
+    onNavigateToCreateTournament: () -> Unit,
 ) {
     val league = League.fromRating(user.rating)
     val tournamentRepository = remember { FirestoreTournamentRepository() }
@@ -137,9 +136,7 @@ fun Competitions(
                     )
                 ) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         androidx.compose.foundation.layout.Row(
@@ -184,35 +181,35 @@ fun Competitions(
 
             item {
                 Card(
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
                     )
                 ) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier.fillMaxWidth().padding(16.dp)
                     ) {
+
                         Text(
                             text = "Host a Tournament",
                             fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleLarge
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        Text("Not available yet. R8 is still pretending this feature is finished.")
+                        Text(
+                            text = "Create your own competition. Set the prize, define the rules, and let others compete.",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
 
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Button(
-                            onClick = {},
-                            enabled = false,
+                            onClick = onNavigateToCreateTournament,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Coming Soon")
+                            Text("Create Tournament")
                         }
                     }
                 }
@@ -224,9 +221,7 @@ fun Competitions(
                         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                     ) {
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(20.dp),
+                            modifier = Modifier.fillMaxWidth().padding(20.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text("No active tournaments right now. R8 is probably cooking one.")
@@ -269,7 +264,8 @@ fun CompetitionsPreview() {
             onNavigateToProfile = {},
             onNavigateToLeaderboard = {},
             onNavigateToTournamentDetails = {},
-            onNavigateToUserProfile = {}
+            onNavigateToUserProfile = {},
+            onNavigateToCreateTournament = {}
         )
     }
 }

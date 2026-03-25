@@ -1,9 +1,11 @@
 package com.inkr8.repository
 
 import android.util.Log
+import com.google.firebase.Firebase
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.functions
 import com.inkr8.data.Tournament
 import com.inkr8.data.Submissions
 import com.inkr8.data.TournamentStatus
@@ -356,6 +358,30 @@ class FirestoreTournamentRepository {
                 }
 
                 onUpdate(snapshot?.exists() == true)
+            }
+    }
+
+    fun createUserTournament(
+        title: String,
+        gamemode: String,
+        prizePool: Long,
+        maxPlayers: Int,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        val data = hashMapOf(
+            "title" to title,
+            "gamemode" to gamemode,
+            "prizePool" to prizePool,
+            "maxPlayers" to maxPlayers
+        )
+
+        Firebase.functions
+            .getHttpsCallable("createUserTournament")
+            .call(data)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { e ->
+                onError(Exception(e.message ?: "Error creating tournament"))
             }
     }
 
