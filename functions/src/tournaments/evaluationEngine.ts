@@ -1,10 +1,12 @@
 import {onDocumentUpdated} from "firebase-functions/v2/firestore";
 import {db, FieldValue} from "../firebase/admin";
 import {calculateRewardPercentages} from "../utils/tournamentRewards";
+import {OPENAI_API_KEY, evaluateWithR8} from "../r8/evaluateWithR8";
 
 type EvaluatedSubmission = {
   authorId: string;
   score: number;
+  feedback: string;
   submissionRef: FirebaseFirestore.DocumentReference;
 };
 
@@ -12,6 +14,7 @@ export const tournamentEvaluationEngine = onDocumentUpdated(
   {
     document: "tournaments/{tournamentId}",
     region: "us-central1",
+    secrets: [OPENAI_API_KEY],
   },
   async (event) => {
     const before = event.data?.before.data();
@@ -37,18 +40,30 @@ export const tournamentEvaluationEngine = onDocumentUpdated(
         return;
       }
 
-      const evaluated: EvaluatedSubmission[] = submissionsSnapshot.docs.map(
-        (doc: FirebaseFirestore.QueryDocumentSnapshot) => {
-          const data = doc.data();
-          const score = Math.random() * 100;
+      const apiKey = OPENAI_API_KEY.value();
 
-          return {
-            authorId: data.authorId,
-            score,
-            submissionRef: doc.ref,
-          };
-        }
-      );
+      const evaluated: EvaluatedSubmission[] = [];
+
+      for (const doc of submissionsSnapshot.docs) {
+        const data = doc.data();
+
+        const result = await evaluateWithR8({
+          apiKey,
+          content: data.content ?? "",
+          gamemode: after.gamemode ?? "STANDARD",
+          requiredWords: Array.isArray(after.requiredWords) ?
+            after.requiredWords : [],
+          themeName: after.themeName ?? null,
+          topicName: after.topicName ?? null,
+        });
+
+        evaluated.push({
+          authorId: data.authorId,
+          score: result.finalScore,
+          feedback: result.feedback,
+          submissionRef: doc.ref,
+        });
+      }
 
       evaluated.sort((a, b) => b.score - a.score);
 
@@ -64,7 +79,7 @@ export const tournamentEvaluationEngine = onDocumentUpdated(
         batch.update(entry.submissionRef, {
           evaluation: {
             finalScore: entry.score,
-            feedback: "R8 has spoken.",
+            feedback: entry.feedback,
             meritEarned: reward,
             rankLeaderboard: rank,
           },

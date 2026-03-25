@@ -1,6 +1,10 @@
 package com.inkr8.repository
 
+import com.google.firebase.Firebase
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
+import com.google.firebase.functions.functions
+import com.inkr8.AuthManager
 import com.inkr8.data.Submissions
 import com.inkr8.mappers.toDomain
 import com.inkr8.mappers.toFirestore
@@ -87,5 +91,55 @@ class FirestoreSubmissionRepository() {
             }
             onSuccess(submissions)
         }.addOnFailureListener { onError(it) }
+    }
+
+    fun getLastSubmissionRealtime(
+        onUpdate: (Submissions) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        val userId = AuthManager.currentUser()?.uid ?: return
+
+        submissionsCollection
+            .whereEqualTo("authorId", userId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .limit(1)
+            .addSnapshotListener { snapshot, error ->
+
+                if (error != null) {
+                    onError(error)
+                    return@addSnapshotListener
+                }
+
+                val doc = snapshot?.documents?.firstOrNull()
+                if (doc != null) {
+                    val submission = doc.toObject(Submissions::class.java)
+                    if (submission != null) {
+                        onUpdate(submission.copy(id = doc.id))
+                    }
+                }
+            }
+    }
+
+    fun unlockFeedbackExpansion(
+        submissionId: String,
+        onSuccess: (Int) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        val functions = Firebase.functions
+        val data = hashMapOf(
+            "submissionId" to submissionId
+        )
+
+        functions
+            .getHttpsCallable("unlockFeedbackExpansion")
+            .call(data)
+            .addOnSuccessListener { result ->
+                val map = result.data as? Map<*, *>
+                val cost = (map?.get("cost") as? Number)?.toInt() ?: 35
+                onSuccess(cost)
+            }
+            .addOnFailureListener { e ->
+                onError(Exception(e.message ?: "Failed to unlock feedback"))
+            }
     }
 }

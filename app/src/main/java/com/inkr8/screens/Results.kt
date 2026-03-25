@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -35,193 +36,221 @@ import com.inkr8.data.SubmissionStatus
 import com.inkr8.data.Submissions
 import com.inkr8.data.Words
 import com.inkr8.ui.theme.Inkr8Theme
-//val fakeSubmission = Submissions(
-//    id = "1",
-//    authorId = "1",
-//    content = "The philosophy of spirit, famously championed by G.W.F. Hegel, examines the evolution of consciousness from individual awareness to a collective, universal realization. In this context, \"spirit\" (or Geist) represents the unity of thought and reality, bridging the gap between the subjective mind and the external world. Hegel’s system structures this journey into three stages: subjective spirit, involving individual psychology; objective spirit, encompassing law and societal ethics; and absolute spirit, which reaches its peak through art, religion, and philosophy.",
-//    wordCount = 150,
-//    characterCount = 610,
-//    wordsUsed = listOf(Words(
-//        0,
-//        "leeway",
-//        "noun",
-//        "The sideways drift of a ship or boat to leeward of the desired course",
-//        "/ˈliˌweɪ/",
-//        "By manœuvring the sheets it could be made to keep the boat moving and reduce leeway.",
-//        "Common"
-//    ),Words(
-//        1,
-//        "shorting",
-//        "noun",
-//        "The action of short",
-//        "/ˈʃɔrdɪŋ/",
-//        "The shorting for thy summer fruits and thy harvest is fallen.",
-//        "Common"
-//    ),Words(
-//        2,
-//        "bulletproof",
-//        "verb",
-//        "To make (something) bulletproof",
-//        "/ˈbʊlətˌpruf/",
-//        "To bulletproof your legal arguments, use the most reliable source for determining case validity.",
-//        "Common"
-//    ),
-//        Words(
-//            3,
-//            "causalism",
-//            "noun",
-//            "Any theory or approach ascribing particular importance to causes or causal relationships in understanding the nature of something.",
-//            "/ˈkɔzəˌlɪzəm/",
-//            "The doctrine of a motiveless volition would be only causalism.",
-//            "Rare"
-//        ),),
-//    gamemode = "",
-//    evaluation = Evaluation(submissionId = "1", finalScore = 87.56, feedback = "While the summary accurately delineates the Hegelian triad, it remains descriptive rather than analytical, lacking a critical examination of the dialectical transitions between these stages. It is a technically sound overview but requires more depth regarding the \"negation\" that drives the movement of Geist to earn a top-tier grade.", isExpanded = false, resultStatus = SubmissionStatus.EVALUATED, meritEarned = 5),
-//    status = SubmissionStatus.EVALUATED
-//)
+
+private val previewSubmission = Submissions(
+    id = "preview-submission",
+    authorId = "user123",
+    content = "This is a preview paragraph written to test the visual structure of the new results screen and how the feedback section behaves before and after expansion.",
+    timestamp = System.currentTimeMillis(),
+    wordCount = 28,
+    characterCount = 164,
+    wordsUsed = emptyList(),
+    gamemode = "STANDARD",
+    topicId = null,
+    themeId = null,
+    evaluation = Evaluation(
+        submissionId = "preview-submission",
+        finalScore = 82.47,
+        feedback = "Your grammar held together better than expected, which is always a pleasant surprise. The structure was clear, but the phrasing still lacked the kind of sharpness that would make R8 raise an eyebrow in genuine respect.",
+        isExpanded = false,
+        resultStatus = SubmissionStatus.EVALUATED,
+        meritEarned = 57,
+        rankLeaderboard = 0
+    ),
+    status = SubmissionStatus.EVALUATED,
+    playmode = "PRACTICE"
+)
+
 @Composable
 fun Results(
     submission: Submissions,
+    isUnlockingFeedback: Boolean,
+    onUnlockFeedback: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToPractice: () -> Unit,
-){
-    val evaluation = submission.evaluation ?: return Text("Submission not evaluated yet")
-    var isExpanded by remember { mutableStateOf(false) }
+) {
 
+    val evaluation = submission.evaluation
+        ?: return Text("R8 is still judging...")
+    val isExpanded = evaluation.isExpanded
+    val isPracticeSubmission = submission.playmode == "PRACTICE"
+    val collapsedFeedback = if (evaluation.feedback.length > 140) {
+        evaluation.feedback.take(140).trimEnd() + "..."
+    } else {
+        evaluation.feedback
+    }
+
+
+    val formattedScore = "%.2f".format(evaluation.finalScore)
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(4.dp).verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(16.dp).verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+
         Text(
-            text = "Results",
-            textAlign = TextAlign.Center,
-            fontSize = 48.sp,
-            modifier = Modifier.padding(4.dp)
+            text = "R8 Verdict",
+            fontSize = 28.sp,
+            color = MaterialTheme.colorScheme.secondary
         )
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Card(
             modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            elevation = CardDefaults.cardElevation(12.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.padding(24.dp).fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround
-                ){
-                    Text(
-                        text = "Words: ${submission.wordCount} | Characters: ${submission.characterCount}",
-                        fontSize = 14.sp,
-                        modifier = Modifier.padding(10.dp),
-                        color = Color.Red
-                    )
-                    val formatScore = "%.2f".format(submission.evaluation.finalScore)
-                    Text(
-                        text = "${formatScore}%",
-                        textAlign = TextAlign.End,
-                        fontSize = 24.sp,
-                        modifier = Modifier.padding(10.dp),
-                        color = Color.Red
-                    )
-                }
+
+                Text(
+                    text = "$formattedScore%",
+                    fontSize = 48.sp,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = when {
+                        evaluation.finalScore >= 90 -> "R8 is impressed."
+                        evaluation.finalScore >= 75 -> "Almost elegant."
+                        evaluation.finalScore >= 60 -> "Acceptable."
+                        else -> "R8 is disappointed."
+                    },
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
             }
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(8.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.secondaryContainer
+            )
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "R8 Feedback",
+                        fontSize = 18.sp
+                    )
+
+                    if (isPracticeSubmission && !isExpanded) {
+                        Button(
+                            onClick = onUnlockFeedback,
+                            enabled = !isUnlockingFeedback
+                        ) {
+                            Text(
+                                if (isUnlockingFeedback) "Unlocking..."
+                                else "Expand -55 Merit"
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = if (isExpanded) evaluation.feedback else collapsedFeedback,
+                    fontSize = 14.sp
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(6.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+
+                Text(
+                    text = "Your Writing",
+                    fontSize = 18.sp
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
                     text = submission.content,
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                    fontSize = 13.sp
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ){
-                Text(
-                    text = "Feedback",
-                    textAlign = TextAlign.Center,
-                    fontSize = 32.sp,
-                    modifier = Modifier.padding(4.dp)
-                )
-
-                Spacer(modifier = Modifier.width(16.dp))
-
-                Button(onClick = { isExpanded = !isExpanded }) {
-                    Text(if (isExpanded) "Collapse Feedback" else "Expand Feedback")
-                }
-            }
-            Card(
-                modifier = Modifier.fillMaxWidth().padding(8.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondary)
-            ) {
-                if(isExpanded){
-                    Text(
-                        text = submission.evaluation.feedback,
-                        modifier = Modifier.padding(horizontal = 4.dp),
-                        fontSize = 13.sp,
-                        color = Color.White
-                    )
-                }else{
-                    Text(
-                        text = submission.evaluation.feedback.take(submission.evaluation.feedback.length/2) + "...",
-                        modifier = Modifier.padding(horizontal = 4.dp),
-                        fontSize = 13.sp,
-                        color = Color.White
-                    )
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ){
-                Text(
-                    text = "Merit Earned: ${submission.evaluation.meritEarned}",
-                    modifier = Modifier.padding(12.dp),
-                    fontSize = 20.sp,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(6.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                Text(
+                    text = "Merit Earned: +${evaluation.meritEarned}",
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Words: ${submission.wordCount} • Characters: ${submission.characterCount}",
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Button(
-                onClick = onNavigateToPractice
-            ) {
-                Text(text = "Practice Again")
+
+            Button(onClick = onNavigateToPractice) {
+                Text("Practice Again")
             }
 
-            Button(
-                onClick = onNavigateBack,
-            ) {
-                Text("Back")
+            Button(onClick = onNavigateBack) {
+                Text("Home")
             }
         }
-
     }
 }
 
 
 
 
-//@Preview(showBackground = true, showSystemUi = true)
-//@Composable
-//fun ResultsPreview() {
-//    Inkr8Theme {
-//        Results(
-//            submission = fakeSubmission,
-//            onNavigateBack = {},
-//            onNavigateToPractice = {}
-//        )
-//    }
-//}
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun ResultsPreview() {
+    Inkr8Theme {
+        Results(
+            submission = previewSubmission,
+            isUnlockingFeedback = false,
+            onUnlockFeedback = {},
+            onNavigateBack = {},
+            onNavigateToPractice = {}
+        )
+    }
+}
