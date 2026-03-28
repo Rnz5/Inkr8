@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,7 +18,9 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -28,11 +31,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.inkr8.R
+import com.inkr8.data.Submissions
 import com.inkr8.data.Tournament
 import com.inkr8.data.TournamentLeaderboardEntry
 import com.inkr8.data.TournamentStatus
@@ -49,6 +54,7 @@ fun TournamentDetails(
     onSubmitToTournament: () -> Unit = {},
     onViewResults: () -> Unit = {},
     onHostClick: () -> Unit = {},
+    onOpenSubmission: (Submissions) -> Unit = {},
     isEnrolled: Boolean = false,
     isSubmitted: Boolean = false,
     isEnrolling: Boolean = false,
@@ -75,7 +81,7 @@ fun TournamentDetails(
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(12.dp)
+        modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(12.dp)
     ) {
         Button(onClick = onNavigateBack) {
             Text("Back")
@@ -85,15 +91,24 @@ fun TournamentDetails(
 
         Text(
             text = tournament.title.ifBlank { "Untitled Tournament" },
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Text(
+            text = tournament.gamemode,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(horizontal = 4.dp)
         )
 
         Spacer(modifier = Modifier.height(12.dp))
 
         Card(
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(20.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
@@ -110,39 +125,46 @@ fun TournamentDetails(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                RewardDistributionHeader()
+                RewardDistributionHeader(showScoreInsteadOfPercent = tournament.status == TournamentStatus.COMPLETED && completedLeaderboard.isNotEmpty())
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                LazyColumn(
-                    modifier = Modifier.fillMaxWidth().weight(1f),
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     if (tournament.status == TournamentStatus.COMPLETED && completedLeaderboard.isNotEmpty()) {
-                        itemsIndexed(completedLeaderboard) { index, entry ->
+
+                        completedLeaderboard.forEachIndexed { index, entry ->
+
                             val merit = entry.submission.evaluation?.meritEarned ?: 0L
+
                             val scorePercent = if (tournament.prizePool > 0) {
                                 (merit.toDouble() / tournament.prizePool.toDouble()) * 100.0
-                            } else {
-                                0.0
-                            }
+                            } else 0.0
 
                             RewardDistributionRow(
                                 place = formatPlace(index + 1),
                                 merit = formatter.format(merit),
                                 percent = "${String.format(Locale.US, "%.2f", scorePercent)}%",
-                                participant = entry.user?.name?.ifBlank { null } ?: entry.submission.authorId
+                                participant = entry.user?.name?.ifBlank { null }
+                                    ?: entry.submission.authorId,
+                                onClick = { onOpenSubmission(entry.submission) }
                             )
                         }
+
                     } else {
-                        itemsIndexed(rewardPercentages) { index, percent ->
+
+                        rewardPercentages.forEachIndexed { index, percent ->
+
                             val merit = (tournament.prizePool * percent).toLong()
 
                             RewardDistributionRow(
                                 place = formatPlace(index + 1),
                                 merit = formatter.format(merit),
                                 percent = "${String.format(Locale.US, "%.2f", percent * 100)}%",
-                                participant = "TBD"
+                                participant = "TBD",
+                                onClick = {}
                             )
                         }
                     }
@@ -210,60 +232,82 @@ fun TournamentDetails(
 }
 
 @Composable
-private fun RewardDistributionHeader() {
+private fun RewardDistributionHeader(
+    showScoreInsteadOfPercent: Boolean
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = "PLACE",
-            modifier = Modifier.width(60.dp),
-            fontWeight = FontWeight.Bold
+            modifier = Modifier.width(52.dp),
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelMedium
         )
         Text(
             text = "MERIT",
-            modifier = Modifier.width(90.dp),
-            fontWeight = FontWeight.Bold
+            modifier = Modifier.width(88.dp),
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelMedium
         )
         Text(
-            text = "PERCENT",
-            modifier = Modifier.width(90.dp),
-            fontWeight = FontWeight.Bold
+            text = if (showScoreInsteadOfPercent) "SCORE" else "PERCENT",
+            modifier = Modifier.width(72.dp),
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelMedium
         )
         Text(
             text = "PARTICIPANT",
             modifier = Modifier.weight(1f),
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelMedium
         )
     }
 
     Spacer(modifier = Modifier.height(8.dp))
     HorizontalDivider()
 }
-
 @Composable
 private fun RewardDistributionRow(
     place: String,
     merit: String,
     percent: String,
-    participant: String
+    participant: String,
+    onClick: () -> Unit
 ) {
+    val placeColor = when (place) {
+        "1st" -> Color(0xFFFFD700)
+        "2nd" -> Color.LightGray
+        "3rd" -> Color(0xFFCD7F32)
+        else -> MaterialTheme.colorScheme.onSurface
+    }
+
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable(onClick = onClick).padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = place,
-            modifier = Modifier.width(60.dp)
+            modifier = Modifier.width(52.dp),
+            color = placeColor,
+            fontWeight = if (place == "1st" || place == "2nd" || place == "3rd") {
+                FontWeight.Bold
+            } else {
+                FontWeight.Normal
+            }
         )
+
         Text(
             text = merit,
-            modifier = Modifier.width(90.dp)
+            modifier = Modifier.width(88.dp)
         )
+
         Text(
             text = percent,
-            modifier = Modifier.width(90.dp)
+            modifier = Modifier.width(72.dp)
         )
+
         Text(
             text = participant,
             modifier = Modifier.weight(1f),

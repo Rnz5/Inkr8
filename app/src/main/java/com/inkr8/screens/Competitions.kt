@@ -131,9 +131,7 @@ fun Competitions(
             item {
                 Card(
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -148,7 +146,7 @@ fun Competitions(
                             }
 
                             Text(
-                                text = "Ranked Mode",
+                                text = "Ranked Arena",
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -173,7 +171,7 @@ fun Competitions(
                             },
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Play $entryCost Merit")
+                            Text("Enter - $entryCost Merit")
                         }
                     }
                 }
@@ -182,9 +180,7 @@ fun Competitions(
             item {
                 Card(
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    )
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth().padding(16.dp)
@@ -217,27 +213,38 @@ fun Competitions(
 
             if (tournaments.isEmpty()) {
                 item {
-                    Card(
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-                    ) {
+                    Card {
                         Box(
                             modifier = Modifier.fillMaxWidth().padding(20.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("No active tournaments right now. R8 is probably cooking one.")
+                            Text("R8 is cooking something...")
                         }
                     }
                 }
             } else {
-                items(
-                    items = tournaments,
-                    key = { it.id }
-                ) { tournament ->
+
+                item {
+                    Text(
+                        text = "Active Tournaments",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                items(tournaments, key = { it.id }) { tournament ->
+
                     TournamentCard(
                         tournament = tournament,
-                        creatorDisplayName = tournament.creatorName.ifBlank { "Unknown Host" },
+                        creatorDisplayName = tournament.creatorName.ifBlank {
+                            if (tournament.creatorId == "R8") "R8" else "Unknown"
+                        },
                         onClick = { onNavigateToTournamentDetails(tournament) },
-                        onHostClick = { onNavigateToUserProfile(tournament.creatorId) }
+                        onHostClick = {
+                            if (tournament.creatorId != "R8") {
+                                onNavigateToUserProfile(tournament.creatorId)
+                            }
+                        }
                     )
                 }
             }

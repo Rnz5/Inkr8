@@ -89,8 +89,8 @@ fun Results(
     ) {
 
         Text(
-            text = "R8 Verdict",
-            fontSize = 28.sp,
+            text = "R8 has judged your writing",
+            fontSize = 22.sp,
             color = MaterialTheme.colorScheme.secondary
         )
 
@@ -116,10 +116,10 @@ fun Results(
 
                 Text(
                     text = when {
-                        evaluation.finalScore >= 90 -> "R8 is impressed."
-                        evaluation.finalScore >= 75 -> "Almost elegant."
-                        evaluation.finalScore >= 60 -> "Acceptable."
-                        else -> "R8 is disappointed."
+                        evaluation.finalScore >= 90 -> "Finally. Something worth reading."
+                        evaluation.finalScore >= 75 -> "Decent. Not memorable."
+                        evaluation.finalScore >= 60 -> "Acceptable, barely."
+                        else -> "You can do better. Much better."
                     },
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -144,7 +144,7 @@ fun Results(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "R8 Feedback",
+                        text = "R8 Analysis",
                         fontSize = 18.sp
                     )
 
@@ -205,9 +205,17 @@ fun Results(
             ) {
 
                 Text(
-                    text = "Merit Earned: +${evaluation.meritEarned}",
+                    text = "+${evaluation.meritEarned} Merit",
                     fontSize = 20.sp,
                     color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = if (evaluation.meritEarned > 0)
+                        "You gained ground."
+                    else
+                        "No progress.",
+                    fontSize = 12.sp,
+                    color = Color.Gray
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
