@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,12 +36,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.media3.exoplayer.scheduler.Requirements
 import com.inkr8.R
+import com.inkr8.data.Evaluation
 import com.inkr8.data.Submissions
 import com.inkr8.data.Tournament
 import com.inkr8.data.TournamentLeaderboardEntry
+import com.inkr8.data.TournamentRequirements
 import com.inkr8.data.TournamentStatus
+import com.inkr8.data.Users
 import com.inkr8.economy.TournamentRewardCalculator
 import com.inkr8.utils.TimeUtils
 import java.text.NumberFormat
@@ -81,7 +87,8 @@ fun TournamentDetails(
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(12.dp)
+        modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         Button(onClick = onNavigateBack) {
             Text("Back")
@@ -91,21 +98,12 @@ fun TournamentDetails(
 
         Text(
             text = tournament.title.ifBlank { "Untitled Tournament" },
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 4.dp)
+            modifier = Modifier.padding(horizontal = 2.dp)
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = tournament.gamemode,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(horizontal = 4.dp)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(2.dp))
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -114,7 +112,7 @@ fun TournamentDetails(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
             Column(
-                modifier = Modifier.fillMaxSize().padding(16.dp)
+                modifier = Modifier.fillMaxSize().padding(14.dp)
             ) {
 
                 Text(
@@ -123,39 +121,37 @@ fun TournamentDetails(
                     fontWeight = FontWeight.Bold
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 RewardDistributionHeader(showScoreInsteadOfPercent = tournament.status == TournamentStatus.COMPLETED && completedLeaderboard.isNotEmpty())
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+
                     if (tournament.status == TournamentStatus.COMPLETED && completedLeaderboard.isNotEmpty()) {
 
-                        completedLeaderboard.forEachIndexed { index, entry ->
+                        itemsIndexed(completedLeaderboard) { index, entry ->
 
                             val merit = entry.submission.evaluation?.meritEarned ?: 0L
 
-                            val scorePercent = if (tournament.prizePool > 0) {
-                                (merit.toDouble() / tournament.prizePool.toDouble()) * 100.0
-                            } else 0.0
+                            val score = entry.submission.evaluation?.finalScore ?: 0.0
 
                             RewardDistributionRow(
                                 place = formatPlace(index + 1),
                                 merit = formatter.format(merit),
-                                percent = "${String.format(Locale.US, "%.2f", scorePercent)}%",
-                                participant = entry.user?.name?.ifBlank { null }
-                                    ?: entry.submission.authorId,
+                                percent = String.format(Locale.US, "%.2f", score),
+                                participant = entry.user?.name?.ifBlank { null } ?: entry.submission.authorId,
                                 onClick = { onOpenSubmission(entry.submission) }
                             )
                         }
 
                     } else {
 
-                        rewardPercentages.forEachIndexed { index, percent ->
+                        itemsIndexed(rewardPercentages) { index, percent ->
 
                             val merit = (tournament.prizePool * percent).toLong()
 
@@ -170,7 +166,7 @@ fun TournamentDetails(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 TournamentOverviewSection(
                     tournament = tournament,
@@ -180,11 +176,11 @@ fun TournamentDetails(
                     onHostClick = onHostClick
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 TournamentRequirementsSection(tournament = tournament)
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 val actionText = when (tournament.status) {
                     TournamentStatus.ENROLLING -> when {
@@ -265,7 +261,7 @@ private fun RewardDistributionHeader(
         )
     }
 
-    Spacer(modifier = Modifier.height(8.dp))
+    Spacer(modifier = Modifier.height(6.dp))
     HorizontalDivider()
 }
 @Composable
@@ -479,4 +475,103 @@ private fun formatPlace(place: Int): String {
         3 -> "3rd"
         else -> "${place}th"
     }
+}
+
+@Composable
+private fun previewTournament(): Tournament {
+    return Tournament(
+        id = "t1",
+        title = "Precision Writing Arena",
+        creatorId = "R8",
+        creatorName = "R8",
+        prizePool = 10000,
+        entranceFee = 500,
+        playersCount = 12,
+        maxPlayers = 20,
+        minPlayers = 5,
+        gamemode = "ON_TOPIC",
+        status = TournamentStatus.ENROLLING,
+        enrollmentDeadline = System.currentTimeMillis() + 1000000,
+        submissionDeadline = System.currentTimeMillis() + 2000000,
+        requirements = TournamentRequirements()
+    )
+}
+
+@Composable
+private fun previewLeaderboard(): List<TournamentLeaderboardEntry> {
+    return listOf(
+        TournamentLeaderboardEntry(
+            submission = Submissions(
+                id = "s1",
+                authorId = "user1",
+                content = "Sample",
+                evaluation = Evaluation(
+                    finalScore = 91.23,
+                    meritEarned = 5000
+                )
+            ),
+            user = Users(
+                id = "USR_8492QW",
+                name = "MintCake",
+                email = "email example",
+                merit = 1275,
+                rating = 146,
+                reputation = 42,
+                bestScore = 91.4,
+                submissionsCount = 38,
+                profileImageURL = "",
+                bannerImageURL = "",
+                achievements = listOf(),
+                joinedDate = System.currentTimeMillis() - 1000L * 60 * 60 * 24 * 120,
+                rankedWinStreak = 2,
+                rankedLossStreak = 0
+            )
+        ),
+        TournamentLeaderboardEntry(
+            submission = Submissions(
+                id = "s2",
+                authorId = "user2",
+                content = "Sample",
+                evaluation = Evaluation(
+                    finalScore = 87.12,
+                    meritEarned = 3000
+                )
+            ),
+            user = Users(
+                id = "USR_8492QW",
+                name = "Shrimpy",
+                email = "email example",
+                merit = 1275,
+                rating = 146,
+                reputation = 42,
+                bestScore = 91.4,
+                submissionsCount = 38,
+                profileImageURL = "",
+                bannerImageURL = "",
+                achievements = listOf(),
+                joinedDate = System.currentTimeMillis() - 1000L * 60 * 60 * 24 * 120,
+                rankedWinStreak = 2,
+                rankedLossStreak = 0
+            )
+        )
+    )
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun TournamentDetailsPreview() {
+
+    TournamentDetails(
+        tournament = previewTournament(),
+        onNavigateBack = {},
+        onEnroll = {},
+        onSubmitToTournament = {},
+        onViewResults = {},
+        onHostClick = {},
+        onOpenSubmission = {},
+        isEnrolled = false,
+        isSubmitted = false,
+        isEnrolling = false,
+        completedLeaderboard = previewLeaderboard() //emptyList()
+    )
 }

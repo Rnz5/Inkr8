@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.google.android.gms.ads.MobileAds
 import com.inkr8.ui.theme.Inkr8Theme
 import com.inkr8.data.Users
 import com.inkr8.repository.UserRepository
@@ -30,6 +31,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         AuthManager.initGoogle(this)
+        MobileAds.initialize(this)
+        AdManager.loadAd(this)
 
         googleLauncher = registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
         ) { result ->
