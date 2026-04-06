@@ -2,6 +2,7 @@ package com.inkr8.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,7 +41,7 @@ import com.inkr8.ui.theme.Inkr8Theme
 private val previewSubmission = Submissions(
     id = "preview-submission",
     authorId = "user123",
-    content = "This is a preview paragraph written to test the visual structure of the new results screen and how the feedback section behaves before and after expansion.",
+    content = "This is a preview paragraph written to test the visual structure of the new results screen and how the feedback section behaves before and after expansion or whatever i am tired as hell.",
     timestamp = System.currentTimeMillis(),
     wordCount = 28,
     characterCount = 164,
@@ -72,7 +73,7 @@ fun Results(
 
     val evaluation = submission.evaluation
         ?: return Text("R8 is still judging...")
-    val isExpanded = evaluation.isExpanded
+    var isExpanded by remember(evaluation.isExpanded) { mutableStateOf(evaluation.isExpanded) }
     val isPracticeSubmission = submission.playmode == "PRACTICE"
     val collapsedFeedback = if (evaluation.feedback.length > 140) {
         evaluation.feedback.take(140).trimEnd() + "..."
@@ -89,9 +90,14 @@ fun Results(
     ) {
 
         Text(
-            text = "R8 has judged your writing",
-            fontSize = 22.sp,
+            text = "Verdict delivered",
+            fontSize = 20.sp,
             color = MaterialTheme.colorScheme.secondary
+        )
+        Text(
+            text = "R8 has evaluated your submission",
+            fontSize = 12.sp,
+            color = Color.Gray
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -116,10 +122,11 @@ fun Results(
 
                 Text(
                     text = when {
-                        evaluation.finalScore >= 90 -> "Finally. Something worth reading."
-                        evaluation.finalScore >= 75 -> "Decent. Not memorable."
-                        evaluation.finalScore >= 60 -> "Acceptable, barely."
-                        else -> "You can do better. Much better."
+                        evaluation.finalScore >= 95 -> "Exceptional. Rare precision."
+                        evaluation.finalScore >= 85 -> "Strong. Almost refined."
+                        evaluation.finalScore >= 75 -> "Competent. Still safe."
+                        evaluation.finalScore >= 60 -> "Unstable. Needs control."
+                        else -> "Weak. Rework everything."
                     },
                     fontSize = 16.sp,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -132,9 +139,7 @@ fun Results(
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(8.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
-            )
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
 
@@ -144,19 +149,30 @@ fun Results(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "R8 Analysis",
+                        text = "R8 Breakdown",
                         fontSize = 18.sp
                     )
 
                     if (isPracticeSubmission && !isExpanded) {
                         Button(
                             onClick = onUnlockFeedback,
-                            enabled = !isUnlockingFeedback
+                            enabled = !isUnlockingFeedback,
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                         ) {
-                            Text(
-                                if (isUnlockingFeedback) "Unlocking..."
-                                else "Expand -55 Merit"
-                            )
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    if (isUnlockingFeedback) "Unlocking..."
+                                    else "Unlock",
+                                    fontSize = 12.sp
+                                )
+                                if (!isUnlockingFeedback) {
+                                    Text(
+                                        "55 Merit",
+                                        fontSize = 10.sp,
+                                        color = Color.Gray
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -200,7 +216,7 @@ fun Results(
             elevation = CardDefaults.cardElevation(6.dp)
         ) {
             Column(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
 
@@ -211,9 +227,9 @@ fun Results(
                 )
                 Text(
                     text = if (evaluation.meritEarned > 0)
-                        "You gained ground."
+                        "Progress acknowledged."
                     else
-                        "No progress.",
+                        "No gain recorded.",
                     fontSize = 12.sp,
                     color = Color.Gray
                 )

@@ -11,11 +11,11 @@ object PantheonManager {
         top100: List<Users>
     ): Pair<Boolean, Int?> {
 
-        if (user.rating < MIN_RATING) {
+        if (user.rating < MIN_RATING && user.id != "R8") {
             return Pair(false, null)
         }
 
-        val index = top100.indexOfFirst { it.id == user.id }
+        val index = top100.indexOfFirst { it.id == user.id && user.id != "R8" }
 
         return if (index != -1) {
             Pair(true, index + 1)

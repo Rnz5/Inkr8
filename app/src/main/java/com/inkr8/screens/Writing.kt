@@ -3,6 +3,7 @@ package com.inkr8.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,8 +12,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -42,20 +46,6 @@ import com.inkr8.data.Words
 import com.inkr8.evaluation.SubmissionFactory
 import com.inkr8.repository.WordRepository
 import com.inkr8.ui.theme.Inkr8Theme
-
-@Composable
-fun WordButton(word: Words, used: Boolean, onClick: () -> Unit) { //i am a freaking genius omg
-    Button(
-        onClick = onClick,
-        colors = if (used) {
-            ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-        } else {
-            ButtonDefaults.buttonColors()
-        }
-    ) {
-        Text(word.word)
-    }
-}
 @Composable
 fun Writing(
     gamemode: Gamemode,
@@ -68,7 +58,7 @@ fun Writing(
 
     val wordRepository = remember { WordRepository() }
     var selectedWords by remember { mutableStateOf<List<Words>>(emptyList()) }
-
+    var selectedWordForDialog by remember { mutableStateOf<Words?>(null) }
     var userText by remember { mutableStateOf("") }
 
     LaunchedEffect(gamemode, playMode, tournamentContext) {
@@ -100,20 +90,26 @@ fun Writing(
         }
     }
 
+    selectedWordForDialog?.let { word ->
+        WordInfoDialog(
+            word = word,
+            onDismiss = { selectedWordForDialog = null }
+        )
+    }
+
     Column(
-        modifier = Modifier.fillMaxSize().padding(8.dp),
+        modifier = Modifier.fillMaxSize().padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.Start
         ) {
             Button(onClick = onNavigateBack) {
-                Text("X")
+                Text("Back")
             }
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
 
         if (selectedWords.isNotEmpty()){
             Card(
@@ -121,14 +117,20 @@ fun Writing(
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
             ){
-
                 LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(4.dp)
+                    contentPadding = PaddingValues(horizontal = 16.dp)
                 ) {
+                    items(selectedWords) { word ->
 
-                    items(selectedWords) { word -> val isUsed = userText.lowercase().contains(word.word.lowercase())
-                        WordButton(word = word, used = isUsed, onClick = {})
+                        val isUsed = userText.lowercase().contains(word.word.lowercase())
+                        WordButton(
+                            word = word,
+                            used = isUsed,
+                            onClick = { selectedWordForDialog = word }
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
                     }
                 }
 
@@ -172,7 +174,7 @@ fun Writing(
                     value = userText,
                     onValueChange = { userText = it },
                     label = { Text("Write a paragraph...") },
-                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    modifier = Modifier.fillMaxWidth().height(220.dp),
                 )
 
                 Row(
@@ -227,17 +229,98 @@ fun Writing(
                         )
                     }
                 ) {
-                    Text(if (canSubmit){
-                        "Submit"
-                    } else{
-                        "Missing Requirements"
-                    }
+                    Text(
+                        if (canSubmit) "Submit"
+                        else "Requirements not met"
                     )
                 }
             }
         }
     }
 }
+
+@Composable
+fun WordInfoDialog(
+    word: Words,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column {
+                Text(
+                    text = word.word,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = word.type,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Column {
+                    Text(
+                        text = "Meaning",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = word.definition,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                Column {
+                    Text(
+                        text = "Example sentence",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = word.sentence,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+@Composable
+fun WordButton(
+    word: Words,
+    used: Boolean,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        shape = RoundedCornerShape(50),
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (used)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Text(
+            text = word.word,
+            fontWeight = if (used) FontWeight.Bold else FontWeight.Normal
+        )
+    }
+}
+
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
