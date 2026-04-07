@@ -43,14 +43,13 @@ fun UserHeaderCard(
     onClick: () -> Unit
 ) {
     val league = League.fromRating(user.rating)
+    val isLowMerit = user.merit < 1000
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 6.dp).clip(RoundedCornerShape(22.dp)).clickable(onClick = onClick),
         shape = RoundedCornerShape(22.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
@@ -98,10 +97,22 @@ fun UserHeaderCard(
                     color = MaterialTheme.colorScheme.primary
                 )
 
+                if (isLowMerit) {
+                    Text(
+                        text = "Low reserves",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
                 Text(
                     text = NumberFormat.getNumberInstance(Locale.US).format(user.merit),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = if (isLowMerit)
+                        MaterialTheme.colorScheme.error
+                    else
+                        MaterialTheme.colorScheme.onSurface
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))

@@ -321,7 +321,11 @@ fun AppRoot(
         }
         Screen.leaderboard -> LeaderboardScreen(
             currentUser = currentUser,
-            onNavigateBack = { currentScreen = Screen.competitions }
+            onNavigateBack = { currentScreen = Screen.competitions },
+            onUserClick = { user ->
+                selectedProfileUserId = user.id
+                currentScreen = Screen.profile
+            }
         )
         Screen.tournamentDetails -> {
             val initialTournament = selectedTournament

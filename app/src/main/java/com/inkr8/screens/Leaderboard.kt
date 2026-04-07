@@ -1,6 +1,7 @@
 package com.inkr8.screens
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,7 +41,8 @@ import com.inkr8.ui.theme.Inkr8Theme
 @Composable
 fun LeaderboardScreen(
     currentUser: Users,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onUserClick: (Users) -> Unit
 ) {
     val userRepository = remember { UserRepository() }
     var top100 by remember { mutableStateOf<List<Users>>(emptyList()) }
@@ -52,9 +54,7 @@ fun LeaderboardScreen(
         }
 
         userRepository.getAllUsers { users ->
-            leagueCounts = users
-                .groupBy { League.fromRating(it.rating) }
-                .mapValues { it.value.size }
+            leagueCounts = users.groupBy { League.fromRating(it.rating) }.mapValues { it.value.size }
         }
     }
 
@@ -62,7 +62,8 @@ fun LeaderboardScreen(
         top100 = top100,
         leagueCounts = leagueCounts,
         currentUser = currentUser,
-        onNavigateBack = onNavigateBack
+        onNavigateBack = onNavigateBack,
+        onUserClick = onUserClick
     )
 }
 
@@ -71,9 +72,15 @@ fun LeaderboardContent(
     top100: List<Users>,
     leagueCounts: Map<League, Int>,
     currentUser: Users,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onUserClick: (Users) -> Unit
 ) {
-    val pantheonMembers = top100.filter { it.rating >= PantheonManager.MIN_RATING }
+
+    val pantheonMembers = top100.filter {
+        it.rating >= PantheonManager.MIN_RATING && it.id != "R8"
+    }
+
+    val r8User = top100.find { it.id == "R8" }
 
     Column(
         modifier = Modifier.fillMaxSize().padding(12.dp)
@@ -96,11 +103,8 @@ fun LeaderboardContent(
             )
 
             Spacer(modifier = Modifier.weight(1f))
-
             Spacer(modifier = Modifier.width(64.dp))
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -111,77 +115,44 @@ fun LeaderboardContent(
                 Text(
                     text = "The Pantheon",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    fontWeight = FontWeight.Bold
                 )
             }
 
-            if (pantheonMembers.isEmpty()) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Text(
-                            text = "No Pantheon members yet.",
-                            modifier = Modifier.padding(16.dp),
-                            color = Color.Gray
-                        )
-                    }
-                }
-            } else {
-                itemsIndexed(pantheonMembers) { index, user ->
-                    val isCurrentUser = user.id == currentUser.id && user.id != "R8"
+            itemsIndexed(pantheonMembers) { index, user ->
 
-                    Card(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
-                            .border(
-                                width = if (isCurrentUser) 2.dp else 0.dp,
-                                color = if (isCurrentUser) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    Color.Transparent
-                                },
-                                shape = RoundedCornerShape(16.dp)
-                            ),
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(14.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "#${index + 1} ${user.name}",
-                                fontWeight = FontWeight.Bold
-                            )
+                val isCurrentUser = user.id == currentUser.id
 
-                            Text(
-                                text = user.rating.toString(),
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp).border(
+                            width = if (isCurrentUser) 2.dp else 0.dp,
+                            color = if (isCurrentUser)
+                                MaterialTheme.colorScheme.primary
+                            else Color.Transparent,
+                            shape = RoundedCornerShape(16.dp)
+                        ).clickable { onUserClick(user) },
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(6.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("#${index + 1} ${user.name}", fontWeight = FontWeight.Bold)
+                        Text(user.rating.toString(), fontWeight = FontWeight.Bold)
                     }
                 }
             }
 
-            item {
-                Spacer(modifier = Modifier.height(20.dp))
-            }
+            item { Spacer(modifier = Modifier.height(20.dp)) }
 
             item {
                 Text(
                     text = "Leagues",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
                 )
-            }
-
-            item {
-                Spacer(modifier = Modifier.height(4.dp))
             }
 
             League.entries.reversed().forEach { league ->
@@ -191,34 +162,50 @@ fun LeaderboardContent(
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                         shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        elevation = CardDefaults.cardElevation(4.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(
-                                    text = league.displayName,
-                                    fontWeight = FontWeight.Bold
-                                )
-
-                                Text(
-                                    text = "$count users",
-                                    fontSize = 12.sp,
-                                    color = Color.Gray
-                                )
-                            }
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(league.displayName, fontWeight = FontWeight.Bold)
+                            Text("$count users", fontSize = 12.sp, color = Color.Gray)
                         }
                     }
                 }
             }
 
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
+            item { Spacer(modifier = Modifier.height(24.dp)) }
+
+            r8User?.let { r8 ->
+
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clickable { onUserClick(r8) },
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(8.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(18.dp).fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "R8",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 22.sp
+                            )
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text(
+                                text = "Beyond ranking",
+                                color = Color.Gray
+                            )
+                        }
+                    }
+                }
             }
+
+            item { Spacer(modifier = Modifier.height(16.dp)) }
         }
     }
 }
@@ -249,7 +236,8 @@ fun LeaderboardPreview() {
             top100 = fakeTop100,
             leagueCounts = fakeLeagueCounts,
             currentUser = fakeCurrentUser,
-            onNavigateBack = {}
+            onNavigateBack = {},
+            onUserClick = {}
         )
     }
 }
