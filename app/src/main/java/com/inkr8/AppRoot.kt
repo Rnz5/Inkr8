@@ -64,82 +64,36 @@ fun AppRoot(
     }
 
     when(currentScreen) {
-        Screen.home -> HomeScreen(
+        Screen.home -> MainPagerScreen(
             user = currentUser,
             pantheonPosition = pantheonPosition,
-            onNavigateToPractice = { currentScreen = Screen.practice },
-            onNavigateToCompetitions = { currentScreen = Screen.competitions },
-            onNavigateToProfile = { currentScreen = Screen.profile }
-        )
-        Screen.practice -> Practice(
-            user = currentUser,
-            pantheonPosition = pantheonPosition,
-            onNavigateBack = { currentScreen = Screen.home },
-            onNavigateToWriting = { gamemode ->
-                activeTournamentId = null
-                latestSubmission = null
+
+            onNavigateToProfile = {
+                currentScreen = Screen.profile
+            },
+
+            onNavigateToLeaderboard = {
+                currentScreen = Screen.leaderboard
+            },
+
+            onNavigateToWriting = { gamemode, playMode, tournament ->
+
                 currentGamemode = gamemode
-                currentPlayMode = PlayMode.Practice
-                currentScreen = Screen.writing
-            },
-            onNavigateToProfile = { currentScreen = Screen.profile }
-        )
-        Screen.competitions -> Competitions(
-            user = currentUser,
-            pantheonPosition = pantheonPosition,
-            onNavigateBack = { currentScreen = Screen.home },
-            onNavigateToWriting = { gamemode ->
-
-                val entryCost = RankedCostCalculator.calculateCost(
-                    EconomyConfig.BASE_COST_RANKED,
-                    currentUser.rankedWinStreak,
-                    currentUser.rankedLossStreak,
-                    currentUser.reputation
-                )
-
-                if (currentUser.merit >= entryCost) {
-                    userRepository.applyMeritAction(
-                        action = "ENTER_RANKED",
-                        onSuccess = {
-                            userRepository.getUserById(currentUser.id) { updatedUser ->
-                                updatedUser?.let { currentUser = it }
-                            }
-                            latestSubmission = null
-                            activeTournamentId = null
-                            currentGamemode = gamemode
-                            currentPlayMode = PlayMode.Ranked
-                            currentScreen = Screen.writing
-                        },
-                        onError = { e ->
-                            Toast.makeText(
-                                context,
-                                e.message ?: "Failed to enter ranked",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    )
-                } else {
-                    Toast.makeText(
-                        context,
-                        "Not enough Merit",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            },
-            onNavigateToProfile = { currentScreen = Screen.profile },
-            onNavigateToLeaderboard = { currentScreen = Screen.leaderboard },
-            onNavigateToTournamentDetails = { tournament ->
+                currentPlayMode = playMode
                 selectedTournament = tournament
-                currentScreen = Screen.tournamentDetails
-            },
-            onNavigateToUserProfile = { userId ->
-                selectedProfileUserId = userId
-                currentScreen = Screen.userProfile
-            },
-            onNavigateToCreateTournament = {
-                currentScreen = Screen.createTournament
+                latestSubmission = null
+                activeTournamentId = tournament?.id
+
+                currentScreen = Screen.writing
             }
         )
+        Screen.practice -> {
+            currentScreen = Screen.home
+        }
+
+        Screen.competitions -> {
+            currentScreen = Screen.home
+        }
         Screen.writing -> Writing(
             gamemode = currentGamemode ?: StandardWriting,
             playMode = currentPlayMode,
@@ -214,7 +168,7 @@ fun AppRoot(
         Screen.submissions -> {
             var submissions by remember { mutableStateOf<List<Submissions>>(emptyList()) }
 
-            androidx.compose.runtime.LaunchedEffect(Unit) {
+            LaunchedEffect(Unit) {
                 submissionRepository.getAllSubmissions(
                     onSuccess = { submissions = it },
                     onError = { e -> e.printStackTrace()
@@ -247,66 +201,107 @@ fun AppRoot(
                 Results(
                     submission = latestSubmission!!,
                     isUnlockingFeedback = isUnlockingFeedback,
+                    isPhilosopher = currentUser.isPhilosopher,
                     onUnlockFeedback = {
                         val submissionId = latestSubmission!!.id
                         isUnlockingFeedback = true
 
-                        submissionRepository.unlockFeedbackExpansion(
-                            submissionId = submissionId,
-                            onSuccess = { cost ->
-                                isUnlockingFeedback = false
+                        if (currentUser.isPhilosopher) {
+                            submissionRepository.unlockFeedbackExpansion(
+                                submissionId = submissionId,
+                                skipMeritCost = true,
+                                onSuccess = {
+                                    isUnlockingFeedback = false
 
-                                submissionRepository.getLastSubmission(
-                                    onSuccess = { updatedSubmission ->
-                                        latestSubmission = updatedSubmission
-                                        Toast.makeText(
-                                            context,
-                                            "Expanded for $cost Merit",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    },
-                                    onError = { e ->
-                                        e.printStackTrace()
-                                    }
-                                )
-                            },
-                            onError = { e ->
-                                isUnlockingFeedback = false
-                                Toast.makeText(
-                                    context,
-                                    e.message ?: "Failed to expand feedback",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        )
-                    },
-                    onNavigateBack = {
-                        submissionAdCounter++
-                        pendingNavigationAfterAd = Screen.home
-
-                        if (submissionAdCounter % 2 == 0) {
-                            activity?.let {
-                                AdManager.showAd(it)
-                                AdManager.loadAd(it)
-                            }
-                            currentScreen = Screen.home
+                                    submissionRepository.getLastSubmission(
+                                        onSuccess = { updatedSubmission ->
+                                            latestSubmission = updatedSubmission
+                                            Toast.makeText(
+                                                context,
+                                                "Expanded for free",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        },
+                                        onError = { e ->
+                                            e.printStackTrace()
+                                        }
+                                    )
+                                },
+                                onError = { e ->
+                                    isUnlockingFeedback = false
+                                    Toast.makeText(
+                                        context,
+                                        e.message ?: "Failed to expand feedback",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            )
                         } else {
-                            currentScreen = Screen.postSubmissionAd
+                            submissionRepository.unlockFeedbackExpansion(
+                                submissionId = submissionId,
+                                skipMeritCost = false,
+                                onSuccess = { cost ->
+                                    isUnlockingFeedback = false
+
+                                    submissionRepository.getLastSubmission(
+                                        onSuccess = { updatedSubmission ->
+                                            latestSubmission = updatedSubmission
+                                            Toast.makeText(
+                                                context,
+                                                "Expanded for $cost Merit",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        },
+                                        onError = { e ->
+                                            e.printStackTrace()
+                                        }
+                                    )
+                                },
+                                onError = { e ->
+                                    isUnlockingFeedback = false
+                                    Toast.makeText(
+                                        context,
+                                        e.message ?: "Failed to expand feedback",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            )
                         }
                     },
-
-                    onNavigateToPractice = {
-                        submissionAdCounter++
-                        pendingNavigationAfterAd = Screen.practice
-
-                        if (submissionAdCounter % 2 == 0) {
-                            activity?.let {
-                                AdManager.showAd(it)
-                                AdManager.loadAd(it)
-                            }
-                            currentScreen = Screen.practice
+                    onNavigateBack = {
+                        if (currentUser.isPhilosopher) {
+                            currentScreen = Screen.home
                         } else {
-                            currentScreen = Screen.postSubmissionAd
+                            submissionAdCounter++
+                            pendingNavigationAfterAd = Screen.home
+
+                            if (submissionAdCounter % 2 == 0) {
+                                activity?.let {
+                                    AdManager.showAd(it)
+                                    AdManager.loadAd(it)
+                                }
+                                currentScreen = Screen.home
+                            } else {
+                                currentScreen = Screen.postSubmissionAd
+                            }
+                        }
+                    },
+                    onNavigateToPractice = {
+                        if (currentUser.isPhilosopher) {
+                            currentScreen = Screen.home
+                        } else {
+                            submissionAdCounter++
+                            pendingNavigationAfterAd = Screen.practice
+
+                            if (submissionAdCounter % 2 == 0) {
+                                activity?.let {
+                                    AdManager.showAd(it)
+                                    AdManager.loadAd(it)
+                                }
+                                currentScreen = Screen.home
+                            } else {
+                                currentScreen = Screen.postSubmissionAd
+                            }
                         }
                     }
                 )
@@ -531,6 +526,11 @@ fun AppRoot(
             var isLoading by remember(tournament?.id) { mutableStateOf(true) }
 
             fun continueWithAd(nextScreen: Screen, beforeNavigate: (() -> Unit)? = null) {
+                if (currentUser.isPhilosopher) {
+                    beforeNavigate?.invoke()
+                    currentScreen = nextScreen
+                    return
+                }
                 submissionAdCounter++
                 pendingNavigationAfterAd = nextScreen
 
@@ -696,7 +696,27 @@ fun AppRoot(
             PaywallScreen(
                 onBack = { currentScreen = Screen.home },
                 onSubscribe = {
-                    Toast.makeText(context, "Subscription coming soon ;)", Toast.LENGTH_SHORT).show()
+                    userRepository.enablePhilosopher(
+                        userId = currentUser.id,
+                        onSuccess = {
+                            userRepository.getUserById(currentUser.id) { updatedUser ->
+                                updatedUser?.let { currentUser = it }
+                            }
+                            Toast.makeText(
+                                context,
+                                "test philosoper",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            currentScreen = Screen.home
+                        },
+                        onError = { e ->
+                            Toast.makeText(
+                                context,
+                                e.message ?: "Failed to enable Philosopher",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    )
                 }
             )
         }

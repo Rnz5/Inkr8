@@ -25,7 +25,6 @@ class UserRepository(
 
     fun ensureUserExists(
         uid: String,
-        name: String,
         email: String?,
         onReady: (Users) -> Unit
     ) {
@@ -39,18 +38,132 @@ class UserRepository(
                         onReady(user)
                     }
                 } else {
-                    docRef.addSnapshotListener { newSnapshot, _ ->
-                        if (newSnapshot != null && newSnapshot.exists()) {
-                            val user = newSnapshot.toObject(Users::class.java)
-                            if (user != null) {
-                                onReady(user)
-                            }
+                    val newUser = Users(
+                        id = uid,
+                        name = "",
+                        email = email,
+                        merit = 1000,
+                        rating = 0,
+                        reputation = 0,
+                        bestScore = 0.0,
+                        submissionsCount = 0,
+                        profileImageURL = "",
+                        bannerImageURL = "",
+                        achievements = emptyList(),
+                        joinedDate = System.currentTimeMillis(),
+                        rankedWinStreak = 0,
+                        rankedLossStreak = 0,
+                        currentlyInRanked = false,
+                        rankedSessionStartedAt = null,
+                        tournamentsPlayed = 0,
+                        tournamentsWon = 0,
+                        totalMeritEarned = 0,
+                        tipsReceived = 0,
+                        isPhilosopher = false,
+                        philosopherSince = null,
+                        hasChosenUsername = false
+                    )
+
+                    docRef.set(newUser)
+                        .addOnSuccessListener {
+                            onReady(newUser)
                         }
-                    }
+                        .addOnFailureListener { it.printStackTrace() }
                 }
             }
             .addOnFailureListener { e ->
                 e.printStackTrace()
+            }
+    }
+
+    fun validateUsername(username: String): String? {
+        if (username.length < 2) return "Username must be at least 2 characters."
+        if (username.length > 20) return "Username must be at most 20 characters."
+
+        val allowedRegex = Regex("^[A-Za-z0-9_.,*{}\\[\\]()√]+$")
+        if (!allowedRegex.matches(username)) {
+            return "Username contains invalid characters."
+        }
+
+        val hasLetterOrDigit = username.any { it.isLetterOrDigit() }
+        if (!hasLetterOrDigit) {
+            return "Username must contain at least one letter or number."
+        }
+
+        return null
+    }
+
+    private fun normalizeUsername(username: String): String {
+        return username.trim().lowercase()
+    }
+
+    fun claimUsername(
+        userId: String,
+        username: String,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        val validationError = validateUsername(username)
+        if (validationError != null) {
+            onError(Exception(validationError))
+            return
+        }
+
+        val normalized = normalizeUsername(username)
+        val usernameRef = firestore.collection("usernames").document(normalized)
+        val userRef = usersCollection.document(userId)
+
+        firestore.runTransaction { transaction ->
+            val usernameSnapshot = transaction.get(usernameRef)
+            val userSnapshot = transaction.get(userRef)
+
+            if (!userSnapshot.exists()) {
+                throw Exception("User document not found.")
+            }
+
+            if (usernameSnapshot.exists()) {
+                throw Exception("That username is already taken :(")
+            }
+
+            transaction.set(
+                usernameRef,
+                mapOf(
+                    "userId" to userId,
+                    "username" to username,
+                    "normalized" to normalized,
+                    "createdAt" to System.currentTimeMillis()
+                )
+            )
+
+            transaction.update(
+                userRef,
+                mapOf(
+                    "name" to username,
+                    "hasChosenUsername" to true
+                )
+            )
+        }.addOnSuccessListener {
+            onSuccess()
+        }.addOnFailureListener {
+            onError(Exception(it.message ?: "Failed to claim username."))
+        }
+    }
+
+    fun isUsernameAvailable(
+        username: String,
+        onResult: (Boolean) -> Unit
+    ) {
+        val normalized = username.trim().lowercase()
+
+        firestore.collection("usernames")
+            .document(normalized)
+            .get()
+            .addOnSuccessListener { snapshot ->
+                onResult(!snapshot.exists())
+            }
+            .addOnFailureListener {
+                it.printStackTrace()
+                onResult(false)
             }
     }
 
@@ -159,6 +272,42 @@ class UserRepository(
                 it.printStackTrace()
                 onResult(emptyMap())
             }
+    }
+
+    fun enablePhilosopher(
+        userId: String,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(userId)
+            .update(
+                mapOf(
+                    "isPhilosopher" to true,
+                    "philosopherSince" to System.currentTimeMillis()
+                )
+            )
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onError(it) }
+    }
+
+    fun disablePhilosopher(
+        userId: String,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        FirebaseFirestore.getInstance()
+            .collection("users")
+            .document(userId)
+            .update(
+                mapOf(
+                    "isPhilosopher" to false,
+                    "philosopherSince" to null
+                )
+            )
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { onError(it) }
     }
 
 }

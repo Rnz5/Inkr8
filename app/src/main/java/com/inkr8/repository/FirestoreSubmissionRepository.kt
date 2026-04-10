@@ -122,12 +122,15 @@ class FirestoreSubmissionRepository() {
 
     fun unlockFeedbackExpansion(
         submissionId: String,
-        onSuccess: (Int) -> Unit,
+        skipMeritCost: Boolean = false,
+        onSuccess: (Long) -> Unit,
         onError: (Exception) -> Unit
     ) {
         val functions = Firebase.functions
+
         val data = hashMapOf(
-            "submissionId" to submissionId
+            "submissionId" to submissionId,
+            "skipMeritCost" to skipMeritCost
         )
 
         functions
@@ -135,8 +138,8 @@ class FirestoreSubmissionRepository() {
             .call(data)
             .addOnSuccessListener { result ->
                 val map = result.data as? Map<*, *>
-                val cost = (map?.get("cost") as? Number)?.toInt() ?: 35
-                onSuccess(cost)
+                val cost = (map?.get("cost") as? Number)?.toInt() ?: 0
+                onSuccess(cost.toLong())
             }
             .addOnFailureListener { e ->
                 onError(Exception(e.message ?: "Failed to unlock feedback"))

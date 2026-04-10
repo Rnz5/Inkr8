@@ -66,6 +66,7 @@ private val previewSubmission = Submissions(
 fun Results(
     submission: Submissions,
     isUnlockingFeedback: Boolean,
+    isPhilosopher: Boolean,
     onUnlockFeedback: () -> Unit,
     onNavigateBack: () -> Unit,
     onNavigateToPractice: () -> Unit,
@@ -161,13 +162,12 @@ fun Results(
                         ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    if (isUnlockingFeedback) "Unlocking..."
-                                    else "Unlock",
+                                    text = if (isUnlockingFeedback) "Unlocking..." else "Unlock",
                                     fontSize = 12.sp
                                 )
                                 if (!isUnlockingFeedback) {
                                     Text(
-                                        "55 Merit",
+                                        text = if (isPhilosopher) "Free" else "55 Merit",
                                         fontSize = 10.sp,
                                         color = Color.Gray
                                     )
@@ -274,7 +274,8 @@ fun ResultsPreview() {
             isUnlockingFeedback = false,
             onUnlockFeedback = {},
             onNavigateBack = {},
-            onNavigateToPractice = {}
+            onNavigateToPractice = {},
+            isPhilosopher = true
         )
     }
 }

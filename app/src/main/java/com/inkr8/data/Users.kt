@@ -20,7 +20,9 @@ data class Users(
     val tournamentsPlayed: Long = 0,
     val tournamentsWon: Long = 0,
     val totalMeritEarned: Long = 0,
-    val tipsReceived: Long = 0
-
+    val tipsReceived: Long = 0,
+    val isPhilosopher: Boolean = false,
+    val philosopherSince: Long? = null,
+    val hasChosenUsername: Boolean = false
     )
 

@@ -193,6 +193,11 @@ fun HomeScreen(
                     Button(
                         enabled = !isSpending && !showSentence,
                         onClick = {
+                            if (user.isPhilosopher) {
+                                showSentence = true
+                                return@Button
+                            }
+
                             isSpending = true
                             userRepository.applyMeritAction(
                                 action = "PURCHASE_EXAMPLE_SENTENCE",
@@ -203,7 +208,7 @@ fun HomeScreen(
                                 onError = { e ->
                                     Toast.makeText(
                                         context,
-                                        e.message ?: "Failed",
+                                        e.message ?: "Failed to purchase example sentence",
                                         Toast.LENGTH_SHORT
                                     ).show()
                                     isSpending = false
@@ -213,9 +218,12 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            if (showSentence) "Example Shown"
-                            else if (isSpending) "Unlocking..."
-                            else "Show Example — ${EconomyConfig.SHOW_EXAMPLE_SENTENCE} Merit"
+                            when {
+                                showSentence -> "Example Shown"
+                                isSpending -> "Unlocking..."
+                                user.isPhilosopher -> "Show Example — Free"
+                                else -> "Show Example — ${EconomyConfig.SHOW_EXAMPLE_SENTENCE} Merit"
+                            }
                         )
                     }
                 }
@@ -248,7 +256,7 @@ fun HomeScreen(
             }
 
             Text(
-                text = "pre-alpha v0.4.1",
+                text = "pre-alpha v0.4.2",
                 fontSize = 12.sp,
                 color = Color.Gray
             )
