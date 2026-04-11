@@ -167,6 +167,53 @@ class UserRepository(
             }
     }
 
+    fun changeUsernameWithMerit(
+        newUsername: String,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        val data = hashMapOf(
+            "action" to "CHANGE_USERNAME",
+            "newUsername" to newUsername
+        )
+
+        functions
+            .getHttpsCallable("applyMeritAction")
+            .call(data)
+            .addOnSuccessListener { onSuccess() }
+            .addOnFailureListener { error ->
+                onError(Exception(error.message ?: "Failed to change username"))
+            }
+    }
+
+    fun deleteAccount(
+        userId: String,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        val userRef = usersCollection.document(userId)
+
+        firestore.runTransaction { transaction ->
+
+            val snapshot = transaction.get(userRef)
+            if (!snapshot.exists()) throw Exception("User not found")
+
+            val username = snapshot.getString("name") ?: ""
+            val normalized = username.lowercase()
+
+            val usernameRef = firestore.collection("usernames").document(normalized)
+
+            transaction.delete(usernameRef)
+
+            transaction.delete(userRef)
+
+        }.addOnSuccessListener {
+            onSuccess()
+        }.addOnFailureListener {
+            onError(Exception(it.message ?: "Failed to delete account"))
+        }
+    }
+
     fun applyMeritAction(
         action: String,
         onSuccess: () -> Unit,

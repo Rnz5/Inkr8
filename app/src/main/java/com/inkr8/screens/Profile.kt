@@ -8,18 +8,18 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -28,11 +28,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.inkr8.AuthManager
 import com.inkr8.R
 import com.inkr8.data.Users
+import com.inkr8.economy.EconomyConfig
 import com.inkr8.rating.League
-import com.inkr8.rating.PantheonManager
 import com.inkr8.ui.theme.Inkr8Theme
 import com.inkr8.utils.TimeUtils.formatTime
 
@@ -52,6 +51,7 @@ val fakeUser = Users(
     rankedWinStreak = 2,
     rankedLossStreak = 0
 )
+
 @Composable
 fun Profile(
     user: Users,
@@ -59,13 +59,80 @@ fun Profile(
     pantheonPosition: Int?,
     onNavigateBack: () -> Unit,
     onNavigateToSubmissions: () -> Unit,
-    onLinkGoogle: () -> Unit
+    onLinkGoogle: () -> Unit,
+    onLogout: () -> Unit,
+    onDeleteAccount: () -> Unit,
+    onChangeUsername: () -> Unit
 ) {
     val league = League.fromRating(user.rating)
     val scrollState = rememberScrollState()
 
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showChangeUsernameDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete account") },
+            text = {
+                Column {
+                    Text("This will permanently delete your account and release your username.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "This action cannot be undone.",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteAccount()
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    if (showChangeUsernameDialog) {
+        AlertDialog(
+            onDismissRequest = { showChangeUsernameDialog = false },
+            title = { Text("Change username") },
+            text = {
+                Column {
+                    Text("Changing your username will cost ${EconomyConfig.CHANGE_USERNAME} Merit.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Do you want to continue?")
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showChangeUsernameDialog = false
+                        onChangeUsername()
+                    }
+                ) {
+                    Text("Continue")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showChangeUsernameDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(bottom = 24.dp),
+        modifier = Modifier.fillMaxSize().verticalScroll(scrollState).padding(bottom = 24.dp)
     ) {
         Card(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
@@ -81,11 +148,11 @@ fun Profile(
                         Text("Save with Google")
                     }
                 } else {
-                    Spacer(modifier = Modifier.width(1.dp))
+                    Spacer(modifier = Modifier.height(1.dp))
                 }
 
                 Button(onClick = onNavigateBack) {
-                    Text("X")
+                    Text("Back")
                 }
             }
 
@@ -181,6 +248,54 @@ fun Profile(
                     Text("View Submissions")
                 }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+            ) {
+                Text(
+                    text = "Account",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(4.dp)
+                )
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Button(
+                        onClick = { showChangeUsernameDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Change Username")
+                    }
+
+                    Button(
+                        onClick = onLogout,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Log out")
+                    }
+
+                    Button(
+                        onClick = { showDeleteDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("Delete Account")
+                    }
+                }
+            }
         }
     }
 }
@@ -226,7 +341,10 @@ fun ProfilePreview() {
             isOwner = true,
             onNavigateBack = {},
             onNavigateToSubmissions = {},
-            onLinkGoogle = {}
+            onLinkGoogle = {},
+            onLogout = {},
+            onDeleteAccount = {},
+            onChangeUsername = {}
         )
     }
 }

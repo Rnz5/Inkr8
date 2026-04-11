@@ -80,7 +80,7 @@ fun LeaderboardContent(
         it.rating >= PantheonManager.MIN_RATING && it.id != "R8"
     }
 
-    val r8User = top100.find { it.id == "R8" }
+    val r8User = top100.find { it.id == "R8" } ?: Users(id = "R8", name = "R8", rating = 999)
 
     Column(
         modifier = Modifier.fillMaxSize().padding(12.dp)
@@ -173,39 +173,50 @@ fun LeaderboardContent(
                 }
             }
 
-            item { Spacer(modifier = Modifier.height(24.dp)) }
+            item { Spacer(modifier = Modifier.height(32.dp)) }
 
-            r8User?.let { r8 ->
-
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth().clickable { onUserClick(r8) },
-                        shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(8.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth().border(1.dp, Color(0xFFC0C0C0), RoundedCornerShape(16.dp)).clickable { onUserClick(r8User) },
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F0F0F))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Column(
-                            modifier = Modifier.padding(18.dp).fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "R8",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 22.sp
-                            )
+                        Text(
+                            text = "R8",
+                            color = Color.White,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 28.sp,
+                            letterSpacing = 4.sp
+                        )
 
-                            Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
-                            Text(
-                                text = "Beyond ranking",
-                                color = Color.Gray
-                            )
-                        }
+                        Text(
+                            text = "System Authority",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Color(0xFFC0C0C0),
+                            fontWeight = FontWeight.Medium,
+                            letterSpacing = 2.sp
+                        )
+                        
+                        Spacer(modifier = Modifier.height(4.dp))
+                        
+                        Text(
+                            text = "Beyond the Pantheon",
+                            fontSize = 10.sp,
+                            color = Color.DarkGray,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
 
-            item { Spacer(modifier = Modifier.height(16.dp)) }
+            item { Spacer(modifier = Modifier.height(24.dp)) }
         }
     }
 }

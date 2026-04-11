@@ -4,6 +4,7 @@ object EconomyConfig{
 
     //Basics
     const val SHOW_EXAMPLE_SENTENCE: Long = 25
+    const val CHANGE_USERNAME: Long = 1000
     const val CHANGE_PFP: Long = 500
     const val CHANGE_BANNER: Long = 750
 

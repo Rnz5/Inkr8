@@ -20,7 +20,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun AppRoot(
     initialUser: Users,
-    googleLauncher: androidx.activity.result.ActivityResultLauncher<android.content.Intent>
+    googleLauncher: androidx.activity.result.ActivityResultLauncher<android.content.Intent>,
+    onSessionEnded: () -> Unit
 ) {
     var currentUser by remember { mutableStateOf(initialUser) }
     val context = LocalContext.current
@@ -37,6 +38,7 @@ fun AppRoot(
     var latestSubmission by remember { mutableStateOf<Submissions?>(null) }
     var submissionAdCounter by remember { mutableStateOf(0) }
     var pendingNavigationAfterAd by remember { mutableStateOf<Screen?>(null) }
+    var pagerInitialPage by remember { mutableIntStateOf(1) }
 
     LaunchedEffect(currentUser.id, currentUser.rating, currentUser.currentlyInRanked) {
 
@@ -67,7 +69,7 @@ fun AppRoot(
         Screen.home -> MainPagerScreen(
             user = currentUser,
             pantheonPosition = pantheonPosition,
-
+            initialPage = pagerInitialPage,
             onNavigateToProfile = {
                 currentScreen = Screen.profile
             },
@@ -77,21 +79,32 @@ fun AppRoot(
             },
 
             onNavigateToWriting = { gamemode, playMode, tournament ->
-
                 currentGamemode = gamemode
                 currentPlayMode = playMode
                 selectedTournament = tournament
                 latestSubmission = null
                 activeTournamentId = tournament?.id
-
                 currentScreen = Screen.writing
+            },
+            onNavigateToTournamentDetails = { tournament ->
+                selectedTournament = tournament
+                currentScreen = Screen.tournamentDetails
+            },
+            onNavigateToUserProfile = { userId ->
+                selectedProfileUserId = userId
+                currentScreen = Screen.userProfile
+            },
+            onNavigateToCreateTournament = {
+                currentScreen = Screen.createTournament
             }
         )
         Screen.practice -> {
+            pagerInitialPage = 0
             currentScreen = Screen.home
         }
 
         Screen.competitions -> {
+            pagerInitialPage = 2
             currentScreen = Screen.home
         }
         Screen.writing -> Writing(
@@ -160,6 +173,7 @@ fun AppRoot(
                 currentScreen = if (activeTournamentId != null && currentPlayMode is PlayMode.Tournament) {
                     Screen.tournamentDetails
                 } else {
+                    pagerInitialPage = 1
                     Screen.home
                 }
             },
@@ -186,11 +200,33 @@ fun AppRoot(
             user = currentUser,
             isOwner = true,
             pantheonPosition = pantheonPosition,
-            onNavigateBack = { currentScreen = Screen.home },
+            onNavigateBack = { 
+                pagerInitialPage = 1
+                currentScreen = Screen.home 
+            },
             onNavigateToSubmissions = { currentScreen = Screen.submissions },
             onLinkGoogle = {
                 val signInIntent = AuthManager.getGoogleSignInIntent()
                 googleLauncher.launch(signInIntent)
+            },
+            onLogout = {
+                AuthManager.signOut()
+                onSessionEnded()
+            },
+            onDeleteAccount = {
+                userRepository.deleteAccount(
+                    userId = currentUser.id,
+                    onSuccess = {
+                        AuthManager.signOut()
+                        onSessionEnded()
+                    },
+                    onError = { e ->
+                        Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
+                    }
+                )
+            },
+            onChangeUsername = {
+                currentScreen = Screen.usernameSetup
             }
         )
         Screen.results -> {
@@ -270,6 +306,7 @@ fun AppRoot(
                     },
                     onNavigateBack = {
                         if (currentUser.isPhilosopher) {
+                            pagerInitialPage = 1
                             currentScreen = Screen.home
                         } else {
                             submissionAdCounter++
@@ -280,6 +317,7 @@ fun AppRoot(
                                     AdManager.showAd(it)
                                     AdManager.loadAd(it)
                                 }
+                                pagerInitialPage = 1
                                 currentScreen = Screen.home
                             } else {
                                 currentScreen = Screen.postSubmissionAd
@@ -288,6 +326,7 @@ fun AppRoot(
                     },
                     onNavigateToPractice = {
                         if (currentUser.isPhilosopher) {
+                            pagerInitialPage = 0
                             currentScreen = Screen.home
                         } else {
                             submissionAdCounter++
@@ -298,6 +337,7 @@ fun AppRoot(
                                     AdManager.showAd(it)
                                     AdManager.loadAd(it)
                                 }
+                                pagerInitialPage = 0
                                 currentScreen = Screen.home
                             } else {
                                 currentScreen = Screen.postSubmissionAd
@@ -316,10 +356,13 @@ fun AppRoot(
         }
         Screen.leaderboard -> LeaderboardScreen(
             currentUser = currentUser,
-            onNavigateBack = { currentScreen = Screen.competitions },
+            onNavigateBack = { 
+                pagerInitialPage = 2
+                currentScreen = Screen.home 
+            },
             onUserClick = { user ->
                 selectedProfileUserId = user.id
-                currentScreen = Screen.profile
+                currentScreen = Screen.userProfile
             }
         )
         Screen.tournamentDetails -> {
@@ -407,7 +450,10 @@ fun AppRoot(
             if (tournament != null) {
                 TournamentDetails(
                     tournament = tournament,
-                    onNavigateBack = { currentScreen = Screen.competitions },
+                    onNavigateBack = { 
+                        pagerInitialPage = 2
+                        currentScreen = Screen.home 
+                    },
                     onHostClick = {
                         selectedProfileUserId = tournament.creatorId
                         currentScreen = Screen.userProfile
@@ -476,7 +522,8 @@ fun AppRoot(
                     }
                 )
             } else {
-                currentScreen = Screen.competitions
+                pagerInitialPage = 2
+                currentScreen = Screen.home
             }
         }
         Screen.userProfile -> {
@@ -506,9 +553,15 @@ fun AppRoot(
                     user = viewedUser!!,
                     isOwner = viewedUser!!.id == currentUser.id,
                     pantheonPosition = viewedPantheonPosition,
-                    onNavigateBack = { currentScreen = Screen.competitions },
+                    onNavigateBack = { 
+                        pagerInitialPage = 2
+                        currentScreen = Screen.home 
+                    },
                     onNavigateToSubmissions = { currentScreen = Screen.submissions },
-                    onLinkGoogle = {}
+                    onLinkGoogle = {},
+                    onLogout = {},
+                    onDeleteAccount = {},
+                    onChangeUsername = {}
                 )
             } else {
                 Box(
@@ -623,7 +676,8 @@ fun AppRoot(
                     }
                 )
             } else {
-                continueWithAd(Screen.competitions)
+                pagerInitialPage = 2
+                currentScreen = Screen.home
             }
         }
         Screen.loading -> {
@@ -670,14 +724,18 @@ fun AppRoot(
                         prizePool,
                         maxPlayers,
                         onSuccess = {
-                            currentScreen = Screen.competitions
+                            pagerInitialPage = 2
+                            currentScreen = Screen.home
                         },
                         onError = {
                             it.printStackTrace()
                         }
                     )
                 },
-                onBack = { currentScreen = Screen.competitions }
+                onBack = { 
+                    pagerInitialPage = 2
+                    currentScreen = Screen.home 
+                }
             )
         }
         Screen.postSubmissionAd -> {
@@ -694,7 +752,10 @@ fun AppRoot(
         }
         Screen.paywall -> {
             PaywallScreen(
-                onBack = { currentScreen = Screen.home },
+                onBack = { 
+                    pagerInitialPage = 1
+                    currentScreen = Screen.home 
+                },
                 onSubscribe = {
                     userRepository.enablePhilosopher(
                         userId = currentUser.id,
@@ -707,6 +768,7 @@ fun AppRoot(
                                 "test philosoper",
                                 Toast.LENGTH_SHORT
                             ).show()
+                            pagerInitialPage = 1
                             currentScreen = Screen.home
                         },
                         onError = { e ->
@@ -714,9 +776,35 @@ fun AppRoot(
                                 context,
                                 e.message ?: "Failed to enable Philosopher",
                                 Toast.LENGTH_SHORT
-                            ).show()
+                                ).show()
                         }
                     )
+                }
+            )
+        }
+        Screen.usernameSetup -> {
+            UsernameSetupScreen(
+                isSaving = false,
+                errorMessage = null,
+                onSubmit = { newName ->
+                    userRepository.changeUsernameWithMerit(
+                        newUsername = newName,
+                        onSuccess = {
+                            userRepository.getUserById(currentUser.id) { updatedUser ->
+                                updatedUser?.let { currentUser = it }
+                                currentScreen = Screen.profile
+                            }
+                        },
+                        onError = { e ->
+                            Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                },
+                checkAvailability = { name, callback ->
+                    userRepository.isUsernameAvailable(name, callback)
+                },
+                validateUsername = { name ->
+                    userRepository.validateUsername(name)
                 }
             )
         }
@@ -738,5 +826,6 @@ enum class Screen {
     loading,
     createTournament,
     postSubmissionAd,
-    paywall
+    paywall,
+    usernameSetup
 }

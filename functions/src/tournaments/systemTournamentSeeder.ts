@@ -108,7 +108,7 @@ async function createSystemTournament(
 
 export const systemTournamentSeeder = onSchedule(
   {
-    schedule: "every 60 minutes",
+    schedule: "every 24 hours",
     region: "us-central1",
   },
   async () => {

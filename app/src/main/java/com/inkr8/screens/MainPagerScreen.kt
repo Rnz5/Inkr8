@@ -16,13 +16,19 @@ import kotlinx.coroutines.launch
 fun MainPagerScreen(
     user: Users,
     pantheonPosition: Int?,
+    initialPage: Int = 1,
     onNavigateToProfile: () -> Unit,
     onNavigateToLeaderboard: () -> Unit,
-    onNavigateToWriting: (Gamemode, PlayMode, Tournament?) -> Unit
+    onNavigateToWriting: (Gamemode, PlayMode, Tournament?) -> Unit,
+    onNavigateToTournamentDetails: (Tournament) -> Unit,
+    onNavigateToUserProfile: (String) -> Unit,
+    onNavigateToCreateTournament: () -> Unit
 ) {
 
-    val pagerState = rememberPagerState(initialPage = 1, pageCount = { 3 })
+    val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { 3 })
     val coroutineScope = rememberCoroutineScope()
+
+    val goToHome = { coroutineScope.launch { pagerState.animateScrollToPage(1) } }
 
     HorizontalPager(
         state = pagerState,
@@ -34,37 +40,29 @@ fun MainPagerScreen(
             0 -> Practice(
                 user = user,
                 pantheonPosition = pantheonPosition,
-                onNavigateBack = { /* ignore */ },
-                onNavigateToWriting = { gamemode ->
-                    onNavigateToWriting(gamemode, PlayMode.Practice, null)
-                },
+                onNavigateBack = { goToHome() },
+                onNavigateToWriting = { gamemode -> onNavigateToWriting(gamemode, PlayMode.Practice, null) },
                 onNavigateToProfile = onNavigateToProfile
             )
 
             1 -> HomeScreen(
                 user = user,
                 pantheonPosition = pantheonPosition,
-                onNavigateToPractice = {
-                    coroutineScope.launch { pagerState.animateScrollToPage(0) }
-                },
-                onNavigateToCompetitions = {
-                    coroutineScope.launch { pagerState.animateScrollToPage(2) }
-                },
+                onNavigateToPractice = { coroutineScope.launch { pagerState.animateScrollToPage(0) } },
+                onNavigateToCompetitions = { coroutineScope.launch { pagerState.animateScrollToPage(2) } },
                 onNavigateToProfile = onNavigateToProfile
             )
 
             2 -> Competitions(
                 user = user,
                 pantheonPosition = pantheonPosition,
-                onNavigateBack = { /* ignore */ },
-                onNavigateToWriting = { gamemode ->
-                    onNavigateToWriting(gamemode, PlayMode.Ranked, null)
-                },
+                onNavigateBack = { goToHome() },
+                onNavigateToWriting = { gamemode -> onNavigateToWriting(gamemode, PlayMode.Ranked, null) },
                 onNavigateToProfile = onNavigateToProfile,
                 onNavigateToLeaderboard = onNavigateToLeaderboard,
-                onNavigateToTournamentDetails = { /* handled outside later */ },
-                onNavigateToUserProfile = { /* handled outside later */ },
-                onNavigateToCreateTournament = { /* handled outside later */ }
+                onNavigateToTournamentDetails = onNavigateToTournamentDetails,
+                onNavigateToUserProfile = onNavigateToUserProfile,
+                onNavigateToCreateTournament = onNavigateToCreateTournament
             )
         }
     }

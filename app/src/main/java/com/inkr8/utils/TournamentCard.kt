@@ -56,15 +56,6 @@ fun TournamentCard(
         else -> 0L
     }
 
-    var ticker by remember { mutableLongStateOf(System.currentTimeMillis()) }
-
-    LaunchedEffect(targetTime) {
-        while (true) {
-            ticker = System.currentTimeMillis()
-            delay(1000L)
-        }
-    }
-
     val remainingText = when (tournament.status) {
         TournamentStatus.ENROLLING -> "Enroll ends in ${TimeUtils.formatRemainingTime(targetTime)}"
         TournamentStatus.ACTIVE -> "Submit ends in ${TimeUtils.formatRemainingTime(targetTime)}"
@@ -75,16 +66,15 @@ fun TournamentCard(
 
     val formattedPrizePool = NumberFormat.getNumberInstance(Locale.US).format(tournament.prizePool)
 
-    val isR8 = tournament.creatorId == "R8"
 
     Card(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(16.dp).clickable(onClick = onClick),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
 
@@ -133,7 +123,7 @@ fun TournamentCard(
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = onHostClick).padding(4.dp)
+                modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable { onHostClick() }.padding(4.dp)
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.pfpexample),

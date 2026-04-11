@@ -240,11 +240,7 @@ fun Competitions(
                             if (tournament.creatorId == "R8") "R8" else "Unknown"
                         },
                         onClick = { onNavigateToTournamentDetails(tournament) },
-                        onHostClick = {
-                            if (tournament.creatorId != "R8") {
-                                onNavigateToUserProfile(tournament.creatorId)
-                            }
-                        }
+                        onHostClick = { onNavigateToUserProfile(tournament.creatorId) }
                     )
                 }
             }

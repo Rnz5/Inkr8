@@ -124,7 +124,11 @@ class MainActivity : ComponentActivity() {
                     else -> {
                         AppRoot(
                             initialUser = currentUser!!,
-                            googleLauncher = googleLauncher
+                            googleLauncher = googleLauncher,
+                            onSessionEnded = {
+                                currentUserState.value = null
+                                isCheckingAuthState.value = false
+                            }
                         )
                     }
                 }

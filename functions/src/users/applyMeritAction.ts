@@ -5,7 +5,25 @@ type MeritAction =
   | "PURCHASE_EXAMPLE_SENTENCE"
   | "ENTER_RANKED"
   | "REWARD_PRACTICE"
-  | "REWARD_RANKED";
+  | "REWARD_RANKED"
+  | "CHANGE_USERNAME";
+
+function validateUsername(username: string): string | null {
+  if (username.length < 2) return "Username must be at least 2 characters.";
+  if (username.length > 20) return "Username must be at most 20 characters.";
+
+  const allowedRegex = /^[A-Za-z0-9_.,*{}\[\]()√]+$/;
+  if (!allowedRegex.test(username)) {
+    return "Username contains invalid characters.";
+  }
+
+  const hasLetterOrDigit = /[A-Za-z0-9]/.test(username);
+  if (!hasLetterOrDigit) {
+    return "Username must contain at least one letter or number.";
+  }
+
+  return null;
+}
 
 export const applyMeritAction = onCall(
   {
@@ -85,6 +103,55 @@ export const applyMeritAction = onCall(
           merit: currentMerit - cost,
           currentlyInRanked: true,
           rankedSessionStartedAt: Date.now(),
+        });
+        break;
+      }
+
+      case "CHANGE_USERNAME": {
+        const cost = 1000;
+        const rawNewUsername = String(request.data?.newUsername ?? "").trim();
+        const normalizedNewUsername = rawNewUsername.toLowerCase();
+
+        const validationError = validateUsername(rawNewUsername);
+        if (validationError) {
+          throw new HttpsError("invalid-argument", validationError);
+        }
+
+        const oldUsername = String(user?.name ?? "").trim();
+        const normalizedOldUsername = oldUsername.toLowerCase();
+
+        if (!oldUsername) {
+          throw new HttpsError("failed-precondition", "Current username not found.");
+        }
+
+        if (normalizedOldUsername === normalizedNewUsername) {
+          throw new HttpsError("failed-precondition", "That is already your username.");
+        }
+
+        if (currentMerit < cost) {
+          throw new HttpsError("failed-precondition", "Not enough Merit.");
+        }
+
+        const oldUsernameRef = db.collection("usernames").doc(normalizedOldUsername);
+        const newUsernameRef = db.collection("usernames").doc(normalizedNewUsername);
+        const newUsernameSnap = await tx.get(newUsernameRef);
+
+        if (newUsernameSnap.exists) {
+          throw new HttpsError("already-exists", "That username is already taken.");
+        }
+
+        tx.delete(oldUsernameRef);
+
+        tx.set(newUsernameRef, {
+          userId: uid,
+          username: rawNewUsername,
+          normalized: normalizedNewUsername,
+          createdAt: Date.now(),
+        });
+
+        tx.update(userRef, {
+          name: rawNewUsername,
+          merit: currentMerit - cost,
         });
         break;
       }
