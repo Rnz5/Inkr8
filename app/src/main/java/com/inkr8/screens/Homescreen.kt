@@ -256,7 +256,7 @@ fun HomeScreen(
             }
 
             Text(
-                text = "pre-alpha v0.4.2",
+                text = "pre-alpha v0.4.4",
                 fontSize = 12.sp,
                 color = Color.Gray
             )

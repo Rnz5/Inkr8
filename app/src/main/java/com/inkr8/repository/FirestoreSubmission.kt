@@ -1,7 +1,5 @@
 package com.inkr8.repository
 
-import com.inkr8.data.Evaluation
-import com.inkr8.data.SubmissionStatus
 import com.inkr8.data.Words
 
 data class FirestoreSubmission(
@@ -16,6 +14,6 @@ data class FirestoreSubmission(
     val topicId: String? = null,
     val themeId: String? = null,
     val evaluation: FirestoreEvaluation? = null,
-    val status: SubmissionStatus = SubmissionStatus.PENDING,
+    val status: String = "PENDING",
     val playmode: String = "PRACTICE"
 )

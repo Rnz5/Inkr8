@@ -9,6 +9,7 @@ export * from "./tournaments/createUserTournament";
 
 export * from "./submissions/submissionEvaluationEngine";
 export * from "./submissions/unlockFeedbackExpansion";
+export * from "./submissions/pruneOldSubmissions";
 
 export * from "./users/userInitializer";
 export * from "./users/applyMeritAction";

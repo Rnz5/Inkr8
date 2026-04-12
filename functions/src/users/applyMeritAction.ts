@@ -3,16 +3,18 @@ import {db} from "../firebase/admin";
 
 type MeritAction =
   | "PURCHASE_EXAMPLE_SENTENCE"
+  | "PURCHASE_REPUTATION_VIEW"
   | "ENTER_RANKED"
   | "REWARD_PRACTICE"
   | "REWARD_RANKED"
-  | "CHANGE_USERNAME";
+  | "CHANGE_USERNAME"
+  | "SAVE_SUBMISSION";
 
 function validateUsername(username: string): string | null {
   if (username.length < 2) return "Username must be at least 2 characters.";
   if (username.length > 20) return "Username must be at most 20 characters.";
 
-  const allowedRegex = /^[A-Za-z0-9_.,*{}\[\]()√]+$/;
+  const allowedRegex = /^[A-Za-z0-9_.,*{}[\]()√]+$/;
   if (!allowedRegex.test(username)) {
     return "Username contains invalid characters.";
   }
@@ -69,6 +71,51 @@ export const applyMeritAction = onCall(
         break;
       }
 
+      case "PURCHASE_REPUTATION_VIEW": {
+        const cost = 500;
+
+        if (currentMerit < cost) {
+          throw new HttpsError("failed-precondition", "Not enough Merit.");
+        }
+
+        tx.update(userRef, {
+          merit: currentMerit - cost,
+        });
+        break;
+      }
+
+      case "SAVE_SUBMISSION": {
+        const cost = 2000;
+        const submissionId = request.data?.submissionId;
+        if (!submissionId) {
+          throw new HttpsError("invalid-argument", "Missing submissionId.");
+        }
+
+        if (currentMerit < cost) {
+          throw new HttpsError("failed-precondition", "Not enough Merit.");
+        }
+
+        const subRef = db.collection("submissions").doc(submissionId);
+        const subSnap = await tx.get(subRef);
+
+        if (!subSnap.exists) {
+          throw new HttpsError("not-found", "Submission not found.");
+        }
+
+        if (subSnap.data()?.authorId !== uid) {
+          throw new HttpsError("permission-denied", "You are not the author.");
+        }
+
+        tx.update(userRef, {
+          merit: currentMerit - cost,
+        });
+
+        tx.update(subRef, {
+          isSaved: true,
+        });
+        break;
+      }
+
       case "ENTER_RANKED": {
         let modifier = 1.0;
 
@@ -121,23 +168,29 @@ export const applyMeritAction = onCall(
         const normalizedOldUsername = oldUsername.toLowerCase();
 
         if (!oldUsername) {
-          throw new HttpsError("failed-precondition", "Current username not found.");
+          throw new HttpsError("failed-precondition",
+            "Current username not found.");
         }
 
         if (normalizedOldUsername === normalizedNewUsername) {
-          throw new HttpsError("failed-precondition", "That is already your username.");
+          throw new HttpsError("failed-precondition",
+            "That is already your username.");
         }
 
         if (currentMerit < cost) {
-          throw new HttpsError("failed-precondition", "Not enough Merit.");
+          throw new HttpsError("failed-precondition",
+            "Not enough Merit.");
         }
 
-        const oldUsernameRef = db.collection("usernames").doc(normalizedOldUsername);
-        const newUsernameRef = db.collection("usernames").doc(normalizedNewUsername);
+        const oldUsernameRef = db.collection("usernames")
+          .doc(normalizedOldUsername);
+        const newUsernameRef = db.collection("usernames")
+          .doc(normalizedNewUsername);
         const newUsernameSnap = await tx.get(newUsernameRef);
 
         if (newUsernameSnap.exists) {
-          throw new HttpsError("already-exists", "That username is already taken.");
+          throw new HttpsError("already-exists",
+            "That username is already taken.");
         }
 
         tx.delete(oldUsernameRef);

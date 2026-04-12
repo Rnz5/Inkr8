@@ -1,7 +1,5 @@
 package com.inkr8.evaluation
 
-import com.inkr8.data.Gamemode
-import com.inkr8.data.OnTopicWriting
 import com.inkr8.data.SubmissionStatus
 import com.inkr8.data.Submissions
 import com.inkr8.data.Words

@@ -59,7 +59,7 @@ fun PostSubmissionAdScreen(
 
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 24.dp),
-        horizontalAlignment = Alignment.CenterVertically as Alignment.Horizontal
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(36.dp))
 

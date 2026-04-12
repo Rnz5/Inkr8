@@ -36,7 +36,7 @@ fun AppRoot(
     var selectedProfileUserId by remember { mutableStateOf<String?>(null) }
     var activeTournamentId by remember { mutableStateOf<String?>(null) }
     var latestSubmission by remember { mutableStateOf<Submissions?>(null) }
-    var submissionAdCounter by remember { mutableStateOf(0) }
+    var submissionAdCounter by remember { mutableIntStateOf(0) }
     var pendingNavigationAfterAd by remember { mutableStateOf<Screen?>(null) }
     var pagerInitialPage by remember { mutableIntStateOf(1) }
 
@@ -121,7 +121,6 @@ fun AppRoot(
                     evaluation = null
                 )
 
-                val isRanked = finalSubmission.playmode == "RANKED"
                 val isTournament = finalSubmission.playmode == "TOURNAMENT" && activeTournamentId != null
 
                 if (isTournament) {
@@ -181,19 +180,44 @@ fun AppRoot(
         )
         Screen.submissions -> {
             var submissions by remember { mutableStateOf<List<Submissions>>(emptyList()) }
+            var isLoadingSubmissions by remember { mutableStateOf(true) }
 
-            LaunchedEffect(Unit) {
+            LaunchedEffect(currentUser.id) {
                 submissionRepository.getAllSubmissions(
-                    onSuccess = { submissions = it },
-                    onError = { e -> e.printStackTrace()
-                        submissions = emptyList()
+                    authorId = currentUser.id,
+                    onSuccess = { 
+                        submissions = it 
+                        isLoadingSubmissions = false
+                    },
+                    onError = { e -> 
+                        e.printStackTrace()
+                        isLoadingSubmissions = false
                     }
                 )
             }
 
-            Submissions(
+            SubmissionsScreen(
                 submissions = submissions,
-                onNavigateToProfile = { currentScreen = Screen.profile }
+                isLoading = isLoadingSubmissions,
+                onNavigateToProfile = { currentScreen = Screen.profile },
+                onSaveSubmission = { submissionId ->
+                    submissionRepository.saveSubmission(
+                        submissionId = submissionId,
+                        onSuccess = {
+                            userRepository.getUserById(currentUser.id) { updatedUser ->
+                                updatedUser?.let { currentUser = it }
+                            }
+                            submissionRepository.getAllSubmissions(
+                                authorId = currentUser.id,
+                                onSuccess = { submissions = it },
+                                onError = { it.printStackTrace() }
+                            )
+                        },
+                        onError = { e ->
+                            Toast.makeText(context, e.message ?: "Failed to save", Toast.LENGTH_SHORT).show()
+                        }
+                    )
+                }
             )
         }
         Screen.profile -> Profile(
@@ -227,6 +251,20 @@ fun AppRoot(
             },
             onChangeUsername = {
                 currentScreen = Screen.usernameSetup
+            },
+            onPurchaseReputation = { onSuccess ->
+                userRepository.applyMeritAction(
+                    action = "PURCHASE_REPUTATION_VIEW",
+                    onSuccess = {
+                        userRepository.getUserById(currentUser.id) { updatedUser ->
+                            updatedUser?.let { currentUser = it }
+                            onSuccess()
+                        }
+                    },
+                    onError = { e ->
+                        Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
+                    }
+                )
             }
         )
         Screen.results -> {
@@ -561,7 +599,21 @@ fun AppRoot(
                     onLinkGoogle = {},
                     onLogout = {},
                     onDeleteAccount = {},
-                    onChangeUsername = {}
+                    onChangeUsername = {},
+                    onPurchaseReputation = { onSuccess ->
+                        userRepository.applyMeritAction(
+                            action = "PURCHASE_REPUTATION_VIEW",
+                            onSuccess = {
+                                userRepository.getUserById(currentUser.id) { updatedUser ->
+                                    updatedUser?.let { currentUser = it }
+                                    onSuccess()
+                                }
+                            },
+                            onError = { e ->
+                                Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                    }
                 )
             } else {
                 Box(
@@ -686,25 +738,41 @@ fun AppRoot(
             LaunchedEffect(currentUser.id) {
                 submissionRepository.getLastSubmissionRealtime(
                     onUpdate = { submission ->
-                        if (submission.status == SubmissionStatus.EVALUATED && !isResolved) {
-                            isResolved = true
-                            latestSubmission = submission
-                            currentScreen = Screen.results
-                        }
-                    },
-                    onError = { it.printStackTrace() }
-                )
-                while (!isResolved) {
-                    delay(2000)
-                    submissionRepository.getLastSubmission(
-                        onSuccess = { submission ->
-                            if (submission != null &&
-                                submission.status == SubmissionStatus.EVALUATED &&
-                                !isResolved
-                            ) {
+                        if (!isResolved) {
+                            if (submission.status == SubmissionStatus.EVALUATED) {
                                 isResolved = true
                                 latestSubmission = submission
                                 currentScreen = Screen.results
+                            } else if (submission.status == SubmissionStatus.FAILED) {
+                                isResolved = true
+                                Toast.makeText(context, "Did R8 fail to judge this entry?.", Toast.LENGTH_LONG).show()
+                                currentScreen = Screen.home
+                            }
+                        }
+                    },
+                    onError = { 
+                        it.printStackTrace()
+                        if (it.message?.contains("index") == true) {
+                            Toast.makeText(context, "Critical Error, Contact support post-haste!.", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                )
+                
+                // Polling fallback
+                while (!isResolved) {
+                    delay(3000)
+                    submissionRepository.getLastSubmission(
+                        onSuccess = { submission ->
+                            if (submission != null && !isResolved) {
+                                if (submission.status == SubmissionStatus.EVALUATED) {
+                                    isResolved = true
+                                    latestSubmission = submission
+                                    currentScreen = Screen.results
+                                } else if (submission.status == SubmissionStatus.FAILED) {
+                                    isResolved = true
+                                    Toast.makeText(context, "Evaluation failed.", Toast.LENGTH_LONG).show()
+                                    currentScreen = Screen.home
+                                }
                             }
                         },
                         onError = { it.printStackTrace() }
