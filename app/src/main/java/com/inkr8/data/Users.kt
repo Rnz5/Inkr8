@@ -9,6 +9,7 @@ data class Users(
     val reputation: Long = 0,
     val bestScore: Double = 0.0,
     val submissionsCount: Long = 0,
+    val savedSubmissionsCount: Long = 0,
     val profileImageURL: String = "",
     val bannerImageURL: String = "",
     val achievements: List<String> = emptyList(),
@@ -25,4 +26,3 @@ data class Users(
     val philosopherSince: Long? = null,
     val hasChosenUsername: Boolean = false
     )
-

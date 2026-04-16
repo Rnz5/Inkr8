@@ -12,23 +12,49 @@ class WordRepository(
     private val wordsCollection = firestore.collection("words")
 
     suspend fun getRandomWords(limit: Long): List<Words> {
-        val snapshot = wordsCollection.whereEqualTo("isActive", true).limit(limit).get().await()
-        return snapshot.documents.mapNotNull { doc -> doc.toObject(Words::class.java)?.copy(id = doc.id) }.shuffled()
+        val randomOffset = Random.nextDouble()
+
+        val snapshot = wordsCollection
+            .whereEqualTo("isActive", true)
+            .whereGreaterThanOrEqualTo("randomIndex", randomOffset)
+            .limit(limit)
+            .get()
+            .await()
+
+        val results = mutableListOf<Words>()
+        results.addAll(snapshot.documents.mapNotNull { doc -> 
+            doc.toObject(Words::class.java)?.copy(id = doc.id) 
+        })
+
+        if (results.size < limit) {
+            val remaining = limit - results.size
+            val secondSnapshot = wordsCollection
+                .whereEqualTo("isActive", true)
+                .whereLessThan("randomIndex", randomOffset)
+                .limit(remaining)
+                .get()
+                .await()
+            
+            results.addAll(secondSnapshot.documents.mapNotNull { doc -> 
+                doc.toObject(Words::class.java)?.copy(id = doc.id) 
+            })
+        }
+
+        return results.shuffled()
     }
 
     suspend fun getSingleRandomWord(): Words? {
-        return getRandomWords(10).randomOrNull()
+        return getRandomWords(1).firstOrNull()
     }
 
     suspend fun getWordsByTexts(wordTexts: List<String>): List<Words> {
         if (wordTexts.isEmpty()) return emptyList()
 
-        val snapshot = FirebaseFirestore.getInstance()
-            .collection("words")
+        val snapshot = firestore.collection("words")
             .whereIn("word", wordTexts)
             .get()
             .await()
-
+        
         val fetched = snapshot.toObjects(Words::class.java)
 
         return wordTexts.mapNotNull { text ->

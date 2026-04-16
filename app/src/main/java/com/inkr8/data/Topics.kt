@@ -5,5 +5,6 @@ data class Topic(
     val themeId: String = "",
     val name: String = "",
     val description: String = "",
-    val difficulty: String = ""
+    val difficulty: String = "",
+    val randomIndex: Double = 0.0
 )

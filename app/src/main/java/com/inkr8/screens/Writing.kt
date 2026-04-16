@@ -9,9 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -41,11 +39,14 @@ import com.inkr8.data.OnTopicWriting
 import com.inkr8.data.PlayMode
 import com.inkr8.data.StandardWriting
 import com.inkr8.data.Submissions
+import com.inkr8.data.Theme
+import com.inkr8.data.Topic
 import com.inkr8.data.Tournament
 import com.inkr8.data.Words
 import com.inkr8.evaluation.SubmissionFactory
 import com.inkr8.repository.WordRepository
 import com.inkr8.ui.theme.Inkr8Theme
+
 @Composable
 fun Writing(
     gamemode: Gamemode,
@@ -59,6 +60,8 @@ fun Writing(
     val wordRepository = remember { WordRepository() }
     var selectedWords by remember { mutableStateOf<List<Words>>(emptyList()) }
     var selectedWordForDialog by remember { mutableStateOf<Words?>(null) }
+    var selectedThemeForDialog by remember { mutableStateOf<Theme?>(null) }
+    var selectedTopicForDialog by remember { mutableStateOf<Topic?>(null) }
     var userText by remember { mutableStateOf("") }
 
     LaunchedEffect(gamemode, playMode, tournamentContext) {
@@ -94,6 +97,20 @@ fun Writing(
         WordInfoDialog(
             word = word,
             onDismiss = { selectedWordForDialog = null }
+        )
+    }
+
+    selectedThemeForDialog?.let { theme ->
+        ThemeInfoDialog(
+            theme = theme,
+            onDismiss = { selectedThemeForDialog = null }
+        )
+    }
+
+    selectedTopicForDialog?.let { topic ->
+        TopicInfoDialog(
+            topic = topic,
+            onDismiss = { selectedTopicForDialog = null }
         )
     }
 
@@ -152,15 +169,38 @@ fun Writing(
             ) {
 
                 if (gamemode is OnTopicWriting) {
-                    Text(
-                        text = "Theme: ${gamemode.theme.name}"
-                    )
-                    Text(
-                        text = "Topic: ${gamemode.topic.name}",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp)
-                    )
+                    Row(
+                        modifier = Modifier.padding(bottom = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Button(
+                            onClick = { selectedThemeForDialog = gamemode.theme },
+                            shape = RoundedCornerShape(50),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                        ) {
+                            Text(
+                                text = "Theme: ${gamemode.theme.name}",
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+
+                        Button(
+                            onClick = { selectedTopicForDialog = gamemode.topic },
+                            shape = RoundedCornerShape(50),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                        ) {
+                            Text(
+                                text = "Topic: ${gamemode.topic.name}",
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }else{
                     Text(
                         text = "Write something",
@@ -223,15 +263,11 @@ fun Writing(
                     colors = if (canSubmit) {
                         ButtonDefaults.buttonColors()
                     } else {
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer,
-                            contentColor = MaterialTheme.colorScheme.onErrorContainer
-                        )
+                        ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer)
                     }
                 ) {
                     Text(
-                        if (canSubmit) "Submit"
-                        else "Requirements not met"
+                        if (canSubmit) "Submit" else "Requirements not met"
                     )
                 }
             }
@@ -284,6 +320,122 @@ fun WordInfoDialog(
                     )
                     Text(
                         text = word.sentence,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+@Composable
+fun ThemeInfoDialog(
+    theme: Theme,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column {
+                Text(
+                    text = theme.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Theme",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Column {
+                    Text(
+                        text = "Description",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = theme.description,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                Column {
+                    Text(
+                        text = "Difficulty",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = theme.difficulty,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+@Composable
+fun TopicInfoDialog(
+    topic: Topic,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column {
+                Text(
+                    text = topic.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Topic",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Column {
+                    Text(
+                        text = "Description",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = topic.description,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                Column {
+                    Text(
+                        text = "Difficulty",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = topic.difficulty,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }

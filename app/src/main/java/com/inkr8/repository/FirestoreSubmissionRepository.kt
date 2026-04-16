@@ -50,6 +50,26 @@ class FirestoreSubmissionRepository() {
             .addOnFailureListener { onError(it) }
     }
 
+    fun listenToAllSubmissions(
+        authorId: String,
+        onUpdate: (List<Submissions>) -> Unit,
+        onError: (Exception) -> Unit
+    ): ListenerRegistration {
+        return submissionsCollection
+            .whereEqualTo("authorId", authorId)
+            .orderBy("timestamp", Query.Direction.DESCENDING)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    onError(error)
+                    return@addSnapshotListener
+                }
+                val submissions = snapshot?.documents?.mapNotNull {
+                    it.toObject(FirestoreSubmission::class.java)?.toDomain()
+                } ?: emptyList()
+                onUpdate(submissions)
+            }
+    }
+
     fun getAllSubmissions(
         authorId: String,
         onSuccess: (List<Submissions>) -> Unit,

@@ -16,6 +16,15 @@ object EconomyConfig{
     const val SYSTEM_CREATION_FEE_PERCENT: Double = 0.034 //3.4% of prize pool for creation of tournament
     const val PROFIT_MARGIN_PERCENT: Double = 0.12 // 12% target profit
 
+    // Submissions
+    const val BASE_SAVE_SUBMISSION_COST: Long = 2000
+    const val SAVE_COST_INCREMENT: Long = 200
+    const val INCREMENT_THRESHOLD: Int = 3
+
+    fun getSaveSubmissionCost(currentSavedCount: Int): Long {
+        val increments = currentSavedCount / INCREMENT_THRESHOLD
+        return BASE_SAVE_SUBMISSION_COST + (increments * SAVE_COST_INCREMENT)
+    }
 
     fun insufficientMerit(): String{
         val phrases = listOf(

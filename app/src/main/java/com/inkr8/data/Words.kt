@@ -11,6 +11,6 @@ data class Words(
     val sentence: String = "",
     val frequencyScore: Int = 100,
     val isActive: Boolean = true,
-    val createdAt: Timestamp? = null
+    val createdAt: Timestamp? = null,
+    val randomIndex: Double = 0.0
 )
-

@@ -85,11 +85,19 @@ export const applyMeritAction = onCall(
       }
 
       case "SAVE_SUBMISSION": {
-        const cost = 2000;
         const submissionId = request.data?.submissionId;
         if (!submissionId) {
           throw new HttpsError("invalid-argument", "Missing submissionId.");
         }
+
+
+        const savedSubsQuery = db.collection("submissions")
+          .where("authorId", "==", uid)
+          .where("isSaved", "==", true);
+        const savedSubsSnap = await tx.get(savedSubsQuery);
+        const savedCount = savedSubsSnap.size;
+
+        const cost = 2000 + Math.floor(savedCount / 3) * 200;
 
         if (currentMerit < cost) {
           throw new HttpsError("failed-precondition", "Not enough Merit.");
@@ -102,8 +110,13 @@ export const applyMeritAction = onCall(
           throw new HttpsError("not-found", "Submission not found.");
         }
 
-        if (subSnap.data()?.authorId !== uid) {
+        const subData = subSnap.data();
+        if (subData?.authorId !== uid) {
           throw new HttpsError("permission-denied", "You are not the author.");
+        }
+
+        if (subData?.isSaved === true) {
+          throw new HttpsError("already-exists", "Submission is already saved.");
         }
 
         tx.update(userRef, {

@@ -3,6 +3,7 @@ package com.inkr8.repository
 import com.google.firebase.firestore.FirebaseFirestore
 import com.inkr8.data.Theme
 import kotlinx.coroutines.tasks.await
+import kotlin.random.Random
 
 class ThemeRepository(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
@@ -11,11 +12,24 @@ class ThemeRepository(
     private val themesCollection = firestore.collection("themes")
 
     suspend fun getRandomTheme(): Theme? {
-        val snapshot = themesCollection.get().await()
-        val themes = snapshot.documents.mapNotNull { doc -> doc.toObject(Theme::class.java)?.copy(id = doc.id) }
+        val randomOffset = Random.nextDouble()
 
-        if (themes.isEmpty()) return null
+        var snapshot = themesCollection
+            .whereGreaterThanOrEqualTo("randomIndex", randomOffset)
+            .limit(1)
+            .get()
+            .await()
 
-        return themes.random()
+        if (snapshot.isEmpty) {
+            snapshot = themesCollection
+                .whereLessThan("randomIndex", randomOffset)
+                .limit(1)
+                .get()
+                .await()
+        }
+
+        return snapshot.documents.firstOrNull()?.let { doc ->
+            doc.toObject(Theme::class.java)?.copy(id = doc.id)
+        }
     }
 }

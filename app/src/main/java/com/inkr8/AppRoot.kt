@@ -40,8 +40,28 @@ fun AppRoot(
     var pendingNavigationAfterAd by remember { mutableStateOf<Screen?>(null) }
     var pagerInitialPage by remember { mutableIntStateOf(1) }
 
-    LaunchedEffect(currentUser.id, currentUser.rating, currentUser.currentlyInRanked) {
+    var allSubmissions by remember { mutableStateOf<List<Submissions>>(emptyList()) }
+    var isLoadingSubmissions by remember { mutableStateOf(true) }
 
+    DisposableEffect(currentUser.id) {
+        isLoadingSubmissions = true
+        val registration = submissionRepository.listenToAllSubmissions(
+            authorId = currentUser.id,
+            onUpdate = { updatedSubmissions ->
+                allSubmissions = updatedSubmissions
+                isLoadingSubmissions = false
+            },
+            onError = { error ->
+                error.printStackTrace()
+                isLoadingSubmissions = false
+            }
+        ) 
+        onDispose {
+            registration.remove()
+        }
+    }
+
+    LaunchedEffect(currentUser.id, currentUser.rating, currentUser.currentlyInRanked) {
         if (currentUser.currentlyInRanked) {
             val newRep = ReputationManager.onRankedAbandoned(currentUser.reputation)
 
@@ -154,7 +174,6 @@ fun AppRoot(
                     submissionRepository.addSubmission(
                         submission = finalSubmission,
                         onSuccess = {
-
                             userRepository.getUserById(currentUser.id) { updatedUser ->
                                 updatedUser?.let { currentUser = it }
                             }
@@ -179,25 +198,9 @@ fun AppRoot(
             onNavigateToResults = { currentScreen = Screen.results }
         )
         Screen.submissions -> {
-            var submissions by remember { mutableStateOf<List<Submissions>>(emptyList()) }
-            var isLoadingSubmissions by remember { mutableStateOf(true) }
-
-            LaunchedEffect(currentUser.id) {
-                submissionRepository.getAllSubmissions(
-                    authorId = currentUser.id,
-                    onSuccess = { 
-                        submissions = it 
-                        isLoadingSubmissions = false
-                    },
-                    onError = { e -> 
-                        e.printStackTrace()
-                        isLoadingSubmissions = false
-                    }
-                )
-            }
-
             SubmissionsScreen(
-                submissions = submissions,
+                user = currentUser,
+                submissions = allSubmissions,
                 isLoading = isLoadingSubmissions,
                 onNavigateToProfile = { currentScreen = Screen.profile },
                 onSaveSubmission = { submissionId ->
@@ -207,16 +210,22 @@ fun AppRoot(
                             userRepository.getUserById(currentUser.id) { updatedUser ->
                                 updatedUser?.let { currentUser = it }
                             }
-                            submissionRepository.getAllSubmissions(
-                                authorId = currentUser.id,
-                                onSuccess = { submissions = it },
-                                onError = { it.printStackTrace() }
-                            )
                         },
                         onError = { e ->
                             Toast.makeText(context, e.message ?: "Failed to save", Toast.LENGTH_SHORT).show()
                         }
                     )
+                }
+            )
+        }
+        Screen.savedSubmissions -> {
+            SavedSubmissionsScreen(
+                savedSubmissions = allSubmissions.filter { it.isSaved },
+                isLoading = isLoadingSubmissions,
+                onNavigateBack = { currentScreen = Screen.profile },
+                onViewDetail = { submission ->
+                    latestSubmission = submission
+                    currentScreen = Screen.results
                 }
             )
         }
@@ -229,6 +238,7 @@ fun AppRoot(
                 currentScreen = Screen.home 
             },
             onNavigateToSubmissions = { currentScreen = Screen.submissions },
+            onNavigateToSavedSubmissions = { currentScreen = Screen.savedSubmissions },
             onLinkGoogle = {
                 val signInIntent = AuthManager.getGoogleSignInIntent()
                 googleLauncher.launch(signInIntent)
@@ -596,6 +606,7 @@ fun AppRoot(
                         currentScreen = Screen.home 
                     },
                     onNavigateToSubmissions = { currentScreen = Screen.submissions },
+                    onNavigateToSavedSubmissions = { currentScreen = Screen.savedSubmissions },
                     onLinkGoogle = {},
                     onLogout = {},
                     onDeleteAccount = {},
@@ -757,8 +768,7 @@ fun AppRoot(
                         }
                     }
                 )
-                
-                // Polling fallback
+
                 while (!isResolved) {
                     delay(3000)
                     submissionRepository.getLastSubmission(
@@ -884,6 +894,7 @@ enum class Screen {
     practice,
     writing,
     submissions,
+    savedSubmissions,
     competitions,
     profile,
     results,

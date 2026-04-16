@@ -16,6 +16,7 @@ fun FirestoreSubmission.toDomain(): Submissions {
         gamemode = gamemodeName,
         topicId = topicId,
         themeId = themeId,
+        isSaved = isSaved,
         evaluation = evaluation?.let {
             Evaluation(
                 submissionId = it.submissionId,
@@ -41,6 +42,7 @@ fun Submissions.toFirestore(): FirestoreSubmission {
         gamemodeName = gamemode,
         topicId = topicId,
         themeId = themeId,
+        isSaved = isSaved,
         evaluation = evaluation?.let {
             FirestoreEvaluation(
                 finalScore = it.finalScore,

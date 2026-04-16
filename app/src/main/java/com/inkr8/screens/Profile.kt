@@ -51,6 +51,7 @@ fun Profile(
     pantheonPosition: Int?,
     onNavigateBack: () -> Unit,
     onNavigateToSubmissions: () -> Unit,
+    onNavigateToSavedSubmissions: () -> Unit,
     onLinkGoogle: () -> Unit,
     onLogout: () -> Unit,
     onDeleteAccount: () -> Unit,
@@ -188,18 +189,31 @@ fun Profile(
             }
         }
 
-        SectionTitle("Best Writing")
+        SectionTitle("Knowledge Base")
         Card(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "\"example text to show off...\"",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
-                )
+            Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+                Button(
+                    onClick = onNavigateToSubmissions,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("System Archive")
+                }
+                
                 Spacer(modifier = Modifier.height(8.dp))
+                
+                Button(
+                    onClick = onNavigateToSavedSubmissions,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A1A1A))
+                ) {
+                    Text("Eternal Repository", color = Color(0xFFFFD700))
+                }
             }
         }
 
@@ -253,16 +267,6 @@ fun Profile(
         if (isOwner) {
             Spacer(modifier = Modifier.height(24.dp))
             Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-                Button(
-                    onClick = onNavigateToSubmissions,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Submissions Archive")
-                }
-                
-                Spacer(modifier = Modifier.height(12.dp))
-                
                 OutlinedButton(
                     onClick = { showChangeUsernameDialog = true },
                     modifier = Modifier.fillMaxWidth(),
@@ -339,6 +343,7 @@ fun ProfilePreview() {
             isOwner = true,
             onNavigateBack = {},
             onNavigateToSubmissions = {},
+            onNavigateToSavedSubmissions = {},
             onLinkGoogle = {},
             onLogout = {},
             onDeleteAccount = {},

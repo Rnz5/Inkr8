@@ -1,5 +1,6 @@
 package com.inkr8.repository
 
+import com.google.firebase.firestore.PropertyName
 import com.inkr8.data.Words
 
 data class FirestoreSubmission(
@@ -15,5 +16,7 @@ data class FirestoreSubmission(
     val themeId: String? = null,
     val evaluation: FirestoreEvaluation? = null,
     val status: String = "PENDING",
-    val playmode: String = "PRACTICE"
+    val playmode: String = "PRACTICE",
+    @get:PropertyName("isSaved")
+    val isSaved: Boolean = false
 )
