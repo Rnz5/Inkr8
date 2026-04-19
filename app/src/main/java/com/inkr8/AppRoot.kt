@@ -55,7 +55,7 @@ fun AppRoot(
                 error.printStackTrace()
                 isLoadingSubmissions = false
             }
-        ) 
+        )
         onDispose {
             registration.remove()
         }
@@ -207,6 +207,10 @@ fun AppRoot(
                     submissionRepository.saveSubmission(
                         submissionId = submissionId,
                         onSuccess = {
+                            allSubmissions = allSubmissions.map {
+                                if (it.id == submissionId) it.copy(isSaved = true) else it 
+                            }
+                            
                             userRepository.getUserById(currentUser.id) { updatedUser ->
                                 updatedUser?.let { currentUser = it }
                             }
@@ -223,9 +227,17 @@ fun AppRoot(
                 savedSubmissions = allSubmissions.filter { it.isSaved },
                 isLoading = isLoadingSubmissions,
                 onNavigateBack = { currentScreen = Screen.profile },
-                onViewDetail = { submission ->
-                    latestSubmission = submission
-                    currentScreen = Screen.results
+                onDeleteSubmission = { submissionId ->
+                    submissionRepository.deleteSubmission(
+                        submissionId = submissionId,
+                        onSuccess = {
+                            allSubmissions = allSubmissions.filter { it.id != submissionId }
+                            Toast.makeText(context, "Entry Dissolved", Toast.LENGTH_SHORT).show()
+                        },
+                        onError = { e ->
+                            Toast.makeText(context, e.message ?: "Failed to dissolve", Toast.LENGTH_SHORT).show()
+                        }
+                    )
                 }
             )
         }

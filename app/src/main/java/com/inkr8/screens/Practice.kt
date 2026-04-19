@@ -1,13 +1,24 @@
 package com.inkr8.screens
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.inkr8.data.*
 import com.inkr8.repository.ThemeRepository
 import com.inkr8.repository.TopicRepository
@@ -33,111 +44,166 @@ fun Practice(
         theme?.let { topic = topicRepository.getRandomTopicFromTheme(it.id) }
     }
 
+    val primaryGold = Color(0xFFFFD700)
+    val backgroundDark = Color(0xFF0F0F0F)
+    val surfaceDark = Color(0xFF1A1A1A)
+
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.SpaceBetween
+        modifier = Modifier.fillMaxSize().background(backgroundDark).statusBarsPadding().navigationBarsPadding().padding(16.dp).verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
+        UserHeaderCard(
+            user = user,
+            pantheonPosition = pantheonPosition,
+            onClick = onNavigateToProfile
+        )
 
         Column {
-
-            UserHeaderCard(
-                user = user,
-                pantheonPosition = pantheonPosition,
-                onClick = onNavigateToProfile
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
             Text(
-                text = "Practice",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                text = "Training Modules",
+                color = primaryGold,
+                style = MaterialTheme.typography.labelSmall,
+                letterSpacing = 2.sp,
+                fontWeight = FontWeight.Black
             )
-
             Text(
-                text = "Refine your writing without risk.",
-                style = MaterialTheme.typography.bodySmall
+                text = "Refine your linguistic edge.",
+                color = Color.White,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.ExtraBold
             )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(6.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-
-                    Text(
-                        text = "STANDARD",
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Text(
-                        text = "Free writing using 4 required words.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Button(
-                        onClick = { onNavigateToWriting(StandardWriting) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Start")
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(6.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-
-                    Text(
-                        text = "ON-TOPIC",
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    Text(
-                        text = "Write about a specific theme and topic using 2 required words.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Button(
-                        enabled = theme != null && topic != null,
-                        onClick = {
-                            theme?.let { t ->
-                                topic?.let { tp ->
-                                    onNavigateToWriting(OnTopicWriting(t, tp))
-                                }
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Start")
-                    }
-                }
-            }
+            Text(
+                text = "No risk to ranking. R8 is still judging.",
+                color = Color.Gray,
+                style = MaterialTheme.typography.bodySmall,
+                fontSize = 10.sp
+            )
         }
 
-        Button(
-            onClick = onNavigateBack,
-            modifier = Modifier.fillMaxWidth()
+        PracticeModuleCard(
+            moduleNumber = "01",
+            title = "Standard Writing",
+            description = "Unconstrained composition using 4 random words entries.",
+            constraints = "Max 150 words • 4 words",
+            onClick = { onNavigateToWriting(StandardWriting) },
+            enabled = true,
+            primaryGold = primaryGold
+        )
+
+        PracticeModuleCard(
+            moduleNumber = "02",
+            title = "On-Topic Writing",
+            description = "Specific parameters. Requires Theme and Topic adherence using 2 random words entries.",
+            constraints = "Max 200 words • Theme + Topic",
+            onClick = {
+                theme?.let { t ->
+                    topic?.let { tp ->
+                        onNavigateToWriting(OnTopicWriting(t, tp))
+                    }
+                }
+            },
+            enabled = theme != null && topic != null,
+            primaryGold = primaryGold
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Home")
+            Text(
+                text = "pre-alpha v0.4.6",
+                color = Color.DarkGray,
+                fontSize = 8.sp,
+                letterSpacing = 1.sp
+            )
+            
+            OutlinedButton(
+                onClick = onNavigateBack,
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+            ) {
+                Text("Return", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+fun PracticeModuleCard(
+    moduleNumber: String,
+    title: String,
+    description: String,
+    constraints: String,
+    onClick: () -> Unit,
+    enabled: Boolean,
+    primaryGold: Color
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(enabled = enabled) { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF1A1A1A)),
+        border = BorderStroke(1.dp, if (enabled) Color.White.copy(alpha = 0.05f) else Color.White.copy(alpha = 0.02f))
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    color = if (enabled) Color.White else Color.Gray,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 16.sp,
+                    letterSpacing = 0.5.sp
+                )
+                Text(
+                    text = moduleNumber,
+                    color = primaryGold.copy(alpha = 0.3f),
+                    fontWeight = FontWeight.Black,
+                    fontSize = 24.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = description,
+                color = if (enabled) Color.LightGray else Color.DarkGray,
+                style = MaterialTheme.typography.bodySmall,
+                lineHeight = 18.sp
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = constraints,
+                    color = if (enabled) primaryGold.copy(alpha = 0.7f) else Color.DarkGray,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                
+                Box(
+                    modifier = Modifier.size(32.dp).clip(CircleShape).background(if (enabled) Color.White else Color.White.copy(alpha = 0.05f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "→",
+                        color = if (enabled) Color.Black else Color.Gray,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }
@@ -145,7 +211,6 @@ fun Practice(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun PracticePreview() {
-
     val fakeUser = Users(
         id = "USR_8492QW",
         name = "MintCake",

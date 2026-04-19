@@ -1,62 +1,46 @@
 package com.inkr8.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.inkr8.data.Evaluation
-import com.inkr8.data.StandardWriting
 import com.inkr8.data.SubmissionStatus
 import com.inkr8.data.Submissions
-import com.inkr8.data.Words
 import com.inkr8.ui.theme.Inkr8Theme
 
 private val previewSubmission = Submissions(
     id = "preview-submission",
     authorId = "user123",
-    content = "This is a preview paragraph written to test the visual structure of the new results screen and how the feedback section behaves before and after expansion or whatever i am tired as hell.",
+    content = "This is a preview paragraph written to test the visual structure of the new results screen and how the feedback section behaves before and after expansion. R8 is watching every keystroke, judging the structural integrity of your linguistic output.",
     timestamp = System.currentTimeMillis(),
-    wordCount = 28,
-    characterCount = 164,
+    wordCount = 38,
+    characterCount = 214,
     wordsUsed = emptyList(),
     gamemode = "STANDARD",
-    topicId = null,
-    themeId = null,
     evaluation = Evaluation(
         submissionId = "preview-submission",
         finalScore = 82.47,
-        feedback = "Your grammar held together better than expected, which is always a pleasant surprise. The structure was clear, but the phrasing still lacked the kind of sharpness that would make R8 raise an eyebrow in genuine respect.",
+        feedback = "Your grammar held together better than expected. The structure was clear, but the phrasing still lacked the kind of sharpness that would make R8 raise an eyebrow.",
+        expandedFeedback = "Structural analysis complete. Your use of syntax is adequate but predictable. To reach elite status, you must abandon safe phrasing. The metrics indicate a high coherence score, yet your creativity index remains within common parameters. Refine your lexicon or remain forgotten in the archives.",
         isExpanded = false,
+        feedbackUnlocked = false,
         resultStatus = SubmissionStatus.EVALUATED,
-        meritEarned = 57,
-        rankLeaderboard = 0
+        meritEarned = 57
     ),
     status = SubmissionStatus.EVALUATED,
     playmode = "PRACTICE"
@@ -71,199 +55,232 @@ fun Results(
     onNavigateBack: () -> Unit,
     onNavigateToPractice: () -> Unit,
 ) {
-
     val evaluation = submission.evaluation
-        ?: return Text("R8 is still judging...")
-    var isExpanded by remember(evaluation.isExpanded) { mutableStateOf(evaluation.isExpanded) }
-    val isPracticeSubmission = submission.playmode == "PRACTICE"
-    val collapsedFeedback = if (evaluation.feedback.length > 140) {
-        evaluation.feedback.take(140).trimEnd() + "..."
+        ?: return Box(modifier = Modifier.fillMaxSize().background(Color(0xFF0F0F0F)), contentAlignment = Alignment.Center) {
+            Text("R8 Judging...", color = Color.Gray, letterSpacing = 2.sp, fontWeight = FontWeight.Bold)
+        }
+
+    val isUnlockedByMerit = evaluation.feedbackUnlocked
+    val isEffectivelyUnlocked = isUnlockedByMerit || isPhilosopher
+    
+    val feedbackToShow = if (isEffectivelyUnlocked) {
+        evaluation.expandedFeedback ?: evaluation.feedback
     } else {
-        evaluation.feedback
+        val baseFeedback = evaluation.feedback
+        val teaserLength = (baseFeedback.length * 0.45).toInt()
+        val teaser = if (baseFeedback.length > teaserLength) {
+            val lastSpace = baseFeedback.take(teaserLength).lastIndexOf(' ')
+            if (lastSpace > 0) baseFeedback.take(lastSpace) + "..." else baseFeedback.take(teaserLength) + "..."
+        } else {
+            baseFeedback
+        }
+        teaser
     }
 
-
-    val formattedScore = "%.2f".format(evaluation.finalScore)
+    val primaryGold = Color(0xFFFFD700)
+    val backgroundDark = Color(0xFF0F0F0F)
+    val surfaceDark = Color(0xFF1A1A1A)
 
     Column(
-        modifier = Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(16.dp).verticalScroll(rememberScrollState()),
+        modifier = Modifier.fillMaxSize().background(backgroundDark).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        Text(
-            text = "Verdict delivered",
-            fontSize = 20.sp,
-            color = MaterialTheme.colorScheme.secondary
-        )
-        Text(
-            text = "R8 has evaluated your submission",
-            fontSize = 12.sp,
-            color = Color.Gray
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(12.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp).fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Text(
+                text = "Verdict Delivered",
+                color = Color.Gray,
+                style = MaterialTheme.typography.labelSmall,
+                letterSpacing = 2.sp,
+                fontWeight = FontWeight.Black
+            )
+            Box(
+                modifier = Modifier.clip(CircleShape).background(Color(0xFF4CAF50).copy(alpha = 0.1f)).border(1.dp, Color(0xFF4CAF50).copy(alpha = 0.5f), CircleShape).padding(horizontal = 8.dp, vertical = 2.dp)
             ) {
-
-                Text(
-                    text = "$formattedScore%",
-                    fontSize = 48.sp,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = when {
-                        evaluation.finalScore >= 95 -> "Exceptional. Rare precision."
-                        evaluation.finalScore >= 85 -> "Strong. Almost refined."
-                        evaluation.finalScore >= 75 -> "Competent. Still safe."
-                        evaluation.finalScore >= 60 -> "Unstable. Needs control."
-                        else -> "Weak. Rework everything."
-                    },
-                    fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+                Text("Synced", color = Color(0xFF4CAF50), fontSize = 9.sp, fontWeight = FontWeight.Bold)
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "%.2f".format(evaluation.finalScore) + "%",
+                fontSize = 64.sp,
+                color = Color.White,
+                fontWeight = FontWeight.Black,
+                letterSpacing = (-2).sp
+            )
+            
+            val appraisal = when {
+                evaluation.finalScore >= 95 -> "GOD TIER. RARE PRECISION."
+                evaluation.finalScore >= 90 -> "ELITE. SYSTEM ACKNOWLEDGED."
+                evaluation.finalScore >= 80 -> "STRONG. ALMOST REFINED."
+                evaluation.finalScore >= 70 -> "COMPETENT. STILL SAFE."
+                evaluation.finalScore >= 60 -> "FINE. COMMON OUTPUT."
+                else -> "WEAK. REWORK EVERYTHING."
+            }
+            
+            Text(
+                text = appraisal,
+                color = primaryGold,
+                style = MaterialTheme.typography.labelMedium,
+                letterSpacing = 1.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(40.dp))
 
         Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(8.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = surfaceDark),
+            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-
+            Column(modifier = Modifier.padding(20.dp)) {
                 Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "R8 Breakdown",
-                        fontSize = 18.sp
+                        color = Color.Gray,
+                        style = MaterialTheme.typography.labelSmall,
+                        letterSpacing = 1.5.sp,
+                        fontWeight = FontWeight.Bold
                     )
-
-                    if (isPracticeSubmission && !isExpanded) {
+                    
+                    if (!isEffectivelyUnlocked && submission.playmode == "PRACTICE") {
                         Button(
                             onClick = onUnlockFeedback,
                             enabled = !isUnlockingFeedback,
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black,
+                                disabledContainerColor = Color.White.copy(alpha = 0.1f)
+                            ),
+                            modifier = Modifier.height(32.dp)
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = if (isUnlockingFeedback) "Unlocking..." else "Unlock",
-                                    fontSize = 12.sp
-                                )
-                                if (!isUnlockingFeedback) {
-                                    Text(
-                                        text = if (isPhilosopher) "Free" else "55 Merit",
-                                        fontSize = 10.sp,
-                                        color = Color.Gray
-                                    )
-                                }
-                            }
+                            Text(
+                                text = if (isUnlockingFeedback) "Decrypting..." else "Expand - 55",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
+                    } else if (isUnlockedByMerit && !isPhilosopher) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(primaryGold.copy(alpha = 0.1f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text("Decrypted", color = primaryGold, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
                 Text(
-                    text = if (isExpanded) evaluation.feedback else collapsedFeedback,
-                    fontSize = 14.sp
+                    text = feedbackToShow,
+                    color = if (isEffectivelyUnlocked) Color.White else Color.LightGray,
+                    style = MaterialTheme.typography.bodyMedium,
+                    lineHeight = 22.sp,
+                    fontStyle = if (isEffectivelyUnlocked) androidx.compose.ui.text.font.FontStyle.Normal else androidx.compose.ui.text.font.FontStyle.Italic
                 )
             }
         }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(6.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-
-                Text(
-                    text = "Your Writing",
-                    fontSize = 18.sp
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = submission.content,
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp
-                )
-            }
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+            Text(
+                text = "Transmission Log",
+                color = Color.DarkGray,
+                style = MaterialTheme.typography.labelSmall,
+                letterSpacing = 1.5.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = submission.content,
+                color = Color.Gray,
+                style = MaterialTheme.typography.bodySmall,
+                lineHeight = 20.sp
+            )
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
         Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(6.dp)
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = surfaceDark)
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Row(
+                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-
-                Text(
-                    text = "+${evaluation.meritEarned} Merit",
-                    fontSize = 20.sp,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = if (evaluation.meritEarned > 0)
-                        "Progress acknowledged."
-                    else
-                        "No gain recorded.",
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "Words: ${submission.wordCount} • Characters: ${submission.characterCount}",
-                    fontSize = 12.sp,
-                    color = Color.Gray
-                )
+                Column {
+                    Text("Merit Gain", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "+${evaluation.meritEarned}",
+                        color = primaryGold,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+                
+                Box(modifier = Modifier.width(1.dp).height(30.dp).background(Color.White.copy(alpha = 0.05f)))
+                
+                Column(horizontalAlignment = Alignment.End) {
+                    Text("Lexicon", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "${submission.wordCount} Words",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(40.dp))
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-
-            Button(onClick = onNavigateToPractice) {
-                Text("Practice Again")
+            OutlinedButton(
+                onClick = onNavigateBack,
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+            ) {
+                Text("Back", fontWeight = FontWeight.Bold)
             }
 
-            Button(onClick = onNavigateBack) {
-                Text("Home")
+            Button(
+                onClick = onNavigateToPractice,
+                modifier = Modifier.weight(1.5f),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)
+            ) {
+                Text("Practice Again", fontWeight = FontWeight.Black)
             }
         }
+        
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
-
-
-
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
@@ -275,7 +292,7 @@ fun ResultsPreview() {
             onUnlockFeedback = {},
             onNavigateBack = {},
             onNavigateToPractice = {},
-            isPhilosopher = true
+            isPhilosopher = false
         )
     }
 }

@@ -1,48 +1,27 @@
 package com.inkr8.screens
 
-
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.inkr8.data.Gamemode
-import com.inkr8.data.OnTopicWriting
-import com.inkr8.data.PlayMode
-import com.inkr8.data.StandardWriting
-import com.inkr8.data.Submissions
-import com.inkr8.data.Theme
-import com.inkr8.data.Topic
-import com.inkr8.data.Tournament
-import com.inkr8.data.Words
+import com.inkr8.data.*
 import com.inkr8.evaluation.SubmissionFactory
 import com.inkr8.repository.WordRepository
 import com.inkr8.ui.theme.Inkr8Theme
@@ -56,7 +35,6 @@ fun Writing(
     onNavigateBack: () -> Unit,
     onNavigateToResults: () -> Unit
 ) {
-
     val wordRepository = remember { WordRepository() }
     var selectedWords by remember { mutableStateOf<List<Words>>(emptyList()) }
     var selectedWordForDialog by remember { mutableStateOf<Words?>(null) }
@@ -64,12 +42,15 @@ fun Writing(
     var selectedTopicForDialog by remember { mutableStateOf<Topic?>(null) }
     var userText by remember { mutableStateOf("") }
 
+    val primaryGold = Color(0xFFFFD700)
+    val backgroundDark = Color(0xFF0F0F0F)
+    val surfaceDark = Color(0xFF1A1A1A)
+
     LaunchedEffect(gamemode, playMode, tournamentContext) {
         selectedWords = when {
             playMode is PlayMode.Tournament && tournamentContext != null -> {
                 wordRepository.getWordsByTexts(tournamentContext.requiredWords)
             }
-
             else -> {
                 val required = gamemode.requiredWords ?: 0
                 if (required > 0) {
@@ -81,194 +62,302 @@ fun Writing(
         }
     }
 
-    val canSubmit = remember(userText, selectedWords, gamemode) {
+    val wordCount = remember(userText) {
+        if (userText.isBlank()) 0 else userText.trim().split("\\s+".toRegex()).size
+    }
+
+    val canSubmit = remember(userText, selectedWords, gamemode, wordCount) {
         if (userText.isBlank()) false
         else {
-            val wordCount = userText.split("\\s+".toRegex()).size
-
             val meetsMinWords = gamemode.minWords?.let { wordCount >= it } ?: true
             val meetsMaxWords = gamemode.maxWords?.let { wordCount <= it } ?: true
-
             meetsMinWords && meetsMaxWords
         }
     }
 
     selectedWordForDialog?.let { word ->
-        WordInfoDialog(
-            word = word,
-            onDismiss = { selectedWordForDialog = null }
-        )
+        WordInfoDialog(word = word, onDismiss = { selectedWordForDialog = null })
     }
 
     selectedThemeForDialog?.let { theme ->
-        ThemeInfoDialog(
-            theme = theme,
-            onDismiss = { selectedThemeForDialog = null }
-        )
+        ThemeInfoDialog(theme = theme, onDismiss = { selectedThemeForDialog = null })
     }
 
     selectedTopicForDialog?.let { topic ->
-        TopicInfoDialog(
-            topic = topic,
-            onDismiss = { selectedTopicForDialog = null }
-        )
+        TopicInfoDialog(topic = topic, onDismiss = { selectedTopicForDialog = null })
     }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(backgroundDark)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        // Top Bar
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Start
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Button(onClick = onNavigateBack) {
-                Text("Back")
+            IconButton(
+                onClick = onNavigateBack,
+                modifier = Modifier.background(Color.White.copy(alpha = 0.05f), CircleShape)
+            ) {
+                Text("←", color = Color.White, fontWeight = FontWeight.Bold)
             }
-        }
-
-        if (selectedWords.isNotEmpty()){
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ){
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    contentPadding = PaddingValues(horizontal = 16.dp)
-                ) {
-                    items(selectedWords) { word ->
-
-                        val isUsed = userText.lowercase().contains(word.word.lowercase())
-                        WordButton(
-                            word = word,
-                            used = isUsed,
-                            onClick = { selectedWordForDialog = word }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
+            
+            Column(horizontalAlignment = Alignment.End) {
+                val modeTitle = when(playMode) {
+                    is PlayMode.Practice -> "PRACTICE"
+                    is PlayMode.Ranked -> "RANKED ARENA"
+                    is PlayMode.Tournament -> "TOURNAMENT"
                 }
-
+                Text(
+                    text = modeTitle,
+                    color = primaryGold,
+                    style = MaterialTheme.typography.labelSmall,
+                    letterSpacing = 2.sp,
+                    fontWeight = FontWeight.Black
+                )
+                Text(
+                    text = "IDENTITY VERIFIED",
+                    color = Color.Gray,
+                    fontSize = 9.sp,
+                    letterSpacing = 1.sp
+                )
             }
         }
-
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ){
-
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+        // Directive Section (Prompt)
+        if (gamemode is OnTopicWriting) {
+            DirectiveCard(
+                theme = gamemode.theme,
+                topic = gamemode.topic,
+                onThemeClick = { selectedThemeForDialog = gamemode.theme },
+                onTopicClick = { selectedTopicForDialog = gamemode.topic }
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(surfaceDark)
+                    .border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+                    .padding(16.dp)
             ) {
-
-                if (gamemode is OnTopicWriting) {
-                    Row(
-                        modifier = Modifier.padding(bottom = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Button(
-                            onClick = { selectedThemeForDialog = gamemode.theme },
-                            shape = RoundedCornerShape(50),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-                        ) {
-                            Text(
-                                text = "Theme: ${gamemode.theme.name}",
-                                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                        }
-
-                        Button(
-                            onClick = { selectedTopicForDialog = gamemode.topic },
-                            shape = RoundedCornerShape(50),
-                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
-                        ) {
-                            Text(
-                                text = "Topic: ${gamemode.topic.name}",
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }else{
+                Column {
                     Text(
-                        text = "Write something",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                        text = "STANDARD DIRECTIVE",
+                        color = primaryGold,
+                        style = MaterialTheme.typography.labelSmall,
+                        letterSpacing = 1.5.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Construct a superior linguistic entry within standard parameters.",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium
                     )
                 }
+            }
+        }
 
-                OutlinedTextField(
-                    value = userText,
-                    onValueChange = { userText = it },
-                    label = { Text("Write a paragraph...") },
-                    modifier = Modifier.fillMaxWidth().height(220.dp),
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Lexicon Section (Required Words)
+        if (selectedWords.isNotEmpty()) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "REQUIRED LEXICON",
+                    color = Color.Gray,
+                    style = MaterialTheme.typography.labelSmall,
+                    letterSpacing = 1.5.sp,
+                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
                 )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    val wordCount =
-                        if (userText.isBlank()){
-                            0
-                        }else{
-                            userText.split("\\s+".toRegex()).size
-                        }
-
-                    Text("Words: $wordCount")
-                    Text("Characters: ${userText.length}")
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
-                    onClick = {
-                        if (canSubmit) {
-                            val submission = SubmissionFactory.create(
-                                content = userText,
-                                gamemode = when (gamemode) {
-                                    is StandardWriting -> "STANDARD"
-                                    is OnTopicWriting -> "ON_TOPIC"
-                                },
-                                playMode = when (playMode) {
-                                    PlayMode.Practice -> "PRACTICE"
-                                    PlayMode.Ranked -> "RANKED"
-                                    is PlayMode.Tournament -> "TOURNAMENT"
-                                },
-                                wordsUsed = selectedWords.filter {
-                                    userText.lowercase().contains(it.word.lowercase())
-                                },
-                                topicId = if (gamemode is OnTopicWriting) gamemode.topic.id else null,
-                                themeId = if (gamemode is OnTopicWriting) gamemode.theme.id else null,
-                            )
-                            onAddSubmission(submission)
-                            userText = ""
-                        }
-                    },
+                LazyRow(
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = canSubmit,
-                    colors = if (canSubmit) {
-                        ButtonDefaults.buttonColors()
-                    } else {
-                        ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer)
-                    }
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    items(selectedWords) { word ->
+                        val isUsed = userText.lowercase().contains(word.word.lowercase())
+                        LexiconChip(
+                            word = word,
+                            isUsed = isUsed,
+                            onClick = { selectedWordForDialog = word }
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Main Transmission Area (Input)
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color.White.copy(alpha = 0.02f))
+                .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+        ) {
+            TextField(
+                value = userText,
+                onValueChange = { userText = it },
+                placeholder = { 
                     Text(
-                        if (canSubmit) "Submit" else "Requirements not met"
-                    )
+                        "Enter transmission...", 
+                        color = Color.DarkGray,
+                        style = MaterialTheme.typography.bodyLarge
+                    ) 
+                },
+                modifier = Modifier.fillMaxSize(),
+                colors = TextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                    cursorColor = primaryGold,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                    disabledIndicatorColor = Color.Transparent,
+                    errorIndicatorColor = Color.Transparent
+                ),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Submission Logic
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                val min = gamemode.minWords ?: 0
+                val max = gamemode.maxWords ?: 1000
+                val isError = (wordCount < min || wordCount > max) && userText.isNotEmpty()
+                Text(
+                    text = "WORDS: $wordCount",
+                    color = if (isError) Color(0xFFF44336) else Color.Gray,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
+                )
+                Text(
+                    text = "CONSTRAINT: $min - $max",
+                    color = Color.DarkGray,
+                    fontSize = 10.sp
+                )
+            }
+            
+            Button(
+                onClick = {
+                    if (canSubmit) {
+                        val submission = SubmissionFactory.create(
+                            content = userText,
+                            gamemode = when (gamemode) {
+                                is StandardWriting -> "STANDARD"
+                                is OnTopicWriting -> "ON_TOPIC"
+                            },
+                            playMode = when (playMode) {
+                                PlayMode.Practice -> "PRACTICE"
+                                PlayMode.Ranked -> "RANKED"
+                                is PlayMode.Tournament -> "TOURNAMENT"
+                            },
+                            wordsUsed = selectedWords.filter {
+                                userText.lowercase().contains(it.word.lowercase())
+                            },
+                            topicId = if (gamemode is OnTopicWriting) gamemode.topic.id else null,
+                            themeId = if (gamemode is OnTopicWriting) gamemode.theme.id else null,
+                        )
+                        onAddSubmission(submission)
+                        userText = ""
+                    }
+                },
+                enabled = canSubmit,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (canSubmit) Color.White else Color.White.copy(alpha = 0.1f),
+                    contentColor = Color.Black,
+                    disabledContainerColor = Color.White.copy(alpha = 0.05f),
+                    disabledContentColor = Color.Gray
+                ),
+                modifier = Modifier.height(48.dp).width(150.dp)
+            ) {
+                Text(
+                    text = if (canSubmit) "SUBMIT" else "INCOMPLETE",
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DirectiveCard(
+    theme: Theme,
+    topic: Topic,
+    onThemeClick: () -> Unit,
+    onTopicClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color(0xFF1A1A1A)).border(1.dp, Color.White.copy(alpha = 0.05f), RoundedCornerShape(16.dp))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Directive",
+                color = Color(0xFFFFD700),
+                style = MaterialTheme.typography.labelSmall,
+                letterSpacing = 2.sp,
+                fontWeight = FontWeight.Black
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable { onThemeClick() }.padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Theme", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(theme.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold)
+                }
+                Box(
+                    modifier = Modifier.size(18.dp).border(1.dp, Color.DarkGray, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("i", color = Color.DarkGray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth().clickable { onTopicClick() }.padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Topic", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(topic.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
+                Box(
+                    modifier = Modifier.size(18.dp).border(1.dp, Color.DarkGray, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("i", color = Color.DarkGray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -276,203 +365,130 @@ fun Writing(
 }
 
 @Composable
-fun WordInfoDialog(
+fun LexiconChip(
     word: Words,
-    onDismiss: () -> Unit
+    isUsed: Boolean,
+    onClick: () -> Unit
 ) {
+    Box(
+        modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(if (isUsed) Color(0xFFFFD700).copy(alpha = 0.1f) else Color.White.copy(alpha = 0.05f))
+            .border(
+                1.dp, 
+                if (isUsed) Color(0xFFFFD700).copy(alpha = 0.5f) else Color.White.copy(alpha = 0.1f), 
+                RoundedCornerShape(8.dp)
+            ).clickable { onClick() }.padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Text(
+            text = word.word,
+            color = if (isUsed) Color(0xFFFFD700) else Color.LightGray,
+            fontWeight = if (isUsed) FontWeight.Black else FontWeight.Medium,
+            fontSize = 13.sp,
+            letterSpacing = 0.5.sp
+        )
+    }
+}
+
+@Composable
+fun WordInfoDialog(word: Words, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color(0xFF1A1A1A),
         title = {
             Column {
                 Text(
                     text = word.word,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFFFFD700)
                 )
-                Text(
-                    text = word.type,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Text(text = word.type.lowercase(), style = MaterialTheme.typography.bodySmall, color = Color.Gray)
             }
         },
         text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column {
-                    Text(
-                        text = "Meaning",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = word.definition,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Text("Definition", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(word.definition, color = Color.White, style = MaterialTheme.typography.bodyMedium)
                 }
-
                 Column {
-                    Text(
-                        text = "Example sentence",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = word.sentence,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Text("Example", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("\"${word.sentence}\"", color = Color.LightGray, style = MaterialTheme.typography.bodyMedium)
                 }
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("Close")
+            TextButton(onClick = onDismiss) {
+                Text("Dismiss", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
     )
 }
 
 @Composable
-fun ThemeInfoDialog(
-    theme: Theme,
-    onDismiss: () -> Unit
-) {
+fun ThemeInfoDialog(theme: Theme, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color(0xFF1A1A1A),
         title = {
-            Column {
-                Text(
-                    text = theme.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Theme",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
+            Text(
+                text = theme.name,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Black,
+                color = Color(0xFFFFD700)
+            )
         },
         text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column {
-                    Text(
-                        text = "Description",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = theme.description,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Text("Directive", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(theme.description, color = Color.White, style = MaterialTheme.typography.bodyMedium)
                 }
-
                 Column {
-                    Text(
-                        text = "Difficulty",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = theme.difficulty,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Text("Complexity", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(theme.difficulty, color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("Close")
+            TextButton(onClick = onDismiss) {
+                Text("Dismiss", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
     )
 }
 
 @Composable
-fun TopicInfoDialog(
-    topic: Topic,
-    onDismiss: () -> Unit
-) {
+fun TopicInfoDialog(topic: Topic, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color(0xFF1A1A1A),
         title = {
-            Column {
-                Text(
-                    text = topic.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = "Topic",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
+            Text(
+                text = topic.name,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Black,
+                color = Color.White
+            )
         },
         text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Column {
-                    Text(
-                        text = "Description",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = topic.description,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Text("Specification", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(topic.description, color = Color.White, style = MaterialTheme.typography.bodyMedium)
                 }
-
                 Column {
-                    Text(
-                        text = "Difficulty",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = topic.difficulty,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Text("Complexity", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(topic.difficulty, color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         },
         confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("Close")
+            TextButton(onClick = onDismiss) {
+                Text("Dismiss", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
     )
 }
-
-@Composable
-fun WordButton(
-    word: Words,
-    used: Boolean,
-    onClick: () -> Unit
-) {
-    Button(
-        onClick = onClick,
-        shape = RoundedCornerShape(50),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (used)
-                MaterialTheme.colorScheme.primaryContainer
-            else
-                MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Text(
-            text = word.word,
-            fontWeight = if (used) FontWeight.Bold else FontWeight.Normal
-        )
-    }
-}
-
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
@@ -484,7 +500,6 @@ fun WritingPreview() {
             onAddSubmission = {},
             onNavigateBack = {},
             onNavigateToResults = {}
-
         )
     }
 }
