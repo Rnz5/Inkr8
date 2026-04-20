@@ -99,18 +99,27 @@ export const submissionEvaluationEngine = onDocumentCreated(
 
       const userData = userSnap.data() ?? {};
       const currentRating = Number(userData.rating ?? 0);
+      const currentMerit = Number(userData.merit ?? 0);
+      const meritCap = Number(userData.meritCap ?? 50000);
 
-      let meritEarned = 0;
+      const meritEarned = calculateMerit(
+        result.finalScore,
+        data.wordCount ?? 0,
+        data.gamemode,
+        playmode === "RANKED"
+      );
+
+      let meritToLiquid = meritEarned;
+      let meritToHold = 0;
+
+      if (currentMerit + meritEarned > meritCap) {
+        meritToLiquid = Math.max(0, meritCap - currentMerit);
+        meritToHold = meritEarned - meritToLiquid;
+      }
+
       let userUpdates: Record<string, unknown> = {};
 
       if (playmode === "RANKED") {
-        meritEarned = calculateMerit(
-          result.finalScore,
-          data.wordCount ?? 0,
-          data.gamemode,
-          true
-        );
-
         const newRating = calculateNewRating(
           currentRating,
           result.finalScore
@@ -121,22 +130,17 @@ export const submissionEvaluationEngine = onDocumentCreated(
         );
 
         userUpdates = {
-          merit: FieldValue.increment(meritEarned),
+          merit: FieldValue.increment(meritToLiquid),
+          meritHold: FieldValue.increment(meritToHold),
           rating: newRating,
           reputation: newReputation,
           currentlyInRanked: false,
           rankedSessionStartedAt: FieldValue.delete(),
         };
       } else {
-        meritEarned = calculateMerit(
-          result.finalScore,
-          data.wordCount ?? 0,
-          data.gamemode,
-          false
-        );
-
         userUpdates = {
-          merit: FieldValue.increment(meritEarned),
+          merit: FieldValue.increment(meritToLiquid),
+          meritHold: FieldValue.increment(meritToHold),
         };
       }
 
@@ -147,6 +151,7 @@ export const submissionEvaluationEngine = onDocumentCreated(
             finalScore: result.finalScore,
             feedback: result.feedback,
             meritEarned,
+            meritToHold,
             resultStatus: "EVALUATED",
           },
           status: "EVALUATED",
@@ -159,6 +164,7 @@ export const submissionEvaluationEngine = onDocumentCreated(
       console.log("submissionEvaluationEngine: finished successfully", {
         submissionId: snapshot.id,
         meritEarned,
+        meritToHold,
       });
     } catch (error) {
       console.error("submissionEvaluationEngine failed", {

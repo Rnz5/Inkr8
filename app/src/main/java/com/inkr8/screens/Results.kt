@@ -67,14 +67,13 @@ fun Results(
         evaluation.expandedFeedback ?: evaluation.feedback
     } else {
         val baseFeedback = evaluation.feedback
-        val teaserLength = (baseFeedback.length * 0.45).toInt()
-        val teaser = if (baseFeedback.length > teaserLength) {
+        val teaserLength = (baseFeedback.length * 0.45).toInt().coerceAtLeast(20)
+        if (baseFeedback.length > teaserLength) {
             val lastSpace = baseFeedback.take(teaserLength).lastIndexOf(' ')
             if (lastSpace > 0) baseFeedback.take(lastSpace) + "..." else baseFeedback.take(teaserLength) + "..."
         } else {
             baseFeedback
         }
-        teaser
     }
 
     val primaryGold = Color(0xFFFFD700)
@@ -82,11 +81,11 @@ fun Results(
     val surfaceDark = Color(0xFF1A1A1A)
 
     Column(
-        modifier = Modifier.fillMaxSize().background(backgroundDark).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()),
+        modifier = Modifier.fillMaxSize().background(backgroundDark).statusBarsPadding().navigationBarsPadding().verticalScroll(rememberScrollState()).padding(bottom = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -104,15 +103,15 @@ fun Results(
             }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "%.2f".format(evaluation.finalScore) + "%",
-                fontSize = 64.sp,
+                fontSize = 76.sp,
                 color = Color.White,
                 fontWeight = FontWeight.Black,
-                letterSpacing = (-2).sp
+                letterSpacing = (-3).sp
             )
             
             val appraisal = when {
@@ -136,12 +135,12 @@ fun Results(
         Spacer(modifier = Modifier.height(40.dp))
 
         Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = surfaceDark),
             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
+            Column(modifier = Modifier.padding(24.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -151,7 +150,7 @@ fun Results(
                         text = "R8 Breakdown",
                         color = Color.Gray,
                         style = MaterialTheme.typography.labelSmall,
-                        letterSpacing = 1.5.sp,
+                        letterSpacing = 2.sp,
                         fontWeight = FontWeight.Bold
                     )
                     
@@ -159,72 +158,73 @@ fun Results(
                         Button(
                             onClick = onUnlockFeedback,
                             enabled = !isUnlockingFeedback,
-                            shape = RoundedCornerShape(8.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.White,
                                 contentColor = Color.Black,
                                 disabledContainerColor = Color.White.copy(alpha = 0.1f)
                             ),
-                            modifier = Modifier.height(32.dp)
+                            modifier = Modifier.height(36.dp)
                         ) {
                             Text(
-                                text = if (isUnlockingFeedback) "Decrypting..." else "Expand - 55",
-                                fontSize = 10.sp,
+                                text = if (isUnlockingFeedback) "Decrypting..."
+                                       else if (isPhilosopher) "Expand • FREE"
+                                       else "Expand • 55",
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Black
                             )
                         }
-                    } else if (isUnlockedByMerit && !isPhilosopher) {
+                    } else if (isUnlockedByMerit || isPhilosopher) {
                         Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(primaryGold.copy(alpha = 0.1f))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                            modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(primaryGold.copy(alpha = 0.1f)).padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text("Decrypted", color = primaryGold, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
                     text = feedbackToShow,
                     color = if (isEffectivelyUnlocked) Color.White else Color.LightGray,
-                    style = MaterialTheme.typography.bodyMedium,
-                    lineHeight = 22.sp,
+                    style = MaterialTheme.typography.bodyLarge,
+                    lineHeight = 26.sp,
                     fontStyle = if (isEffectivelyUnlocked) androidx.compose.ui.text.font.FontStyle.Normal else androidx.compose.ui.text.font.FontStyle.Italic
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)
+        ) {
             Text(
                 text = "Transmission Log",
                 color = Color.DarkGray,
                 style = MaterialTheme.typography.labelSmall,
                 letterSpacing = 1.5.sp
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = submission.content,
                 color = Color.Gray,
-                style = MaterialTheme.typography.bodySmall,
-                lineHeight = 20.sp
+                style = MaterialTheme.typography.bodyMedium,
+                lineHeight = 22.sp
             )
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(36.dp))
 
         Card(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+            shape = RoundedCornerShape(14.dp),
             colors = CardDefaults.cardColors(containerColor = surfaceDark)
         ) {
             Row(
-                modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                modifier = Modifier.padding(20.dp).fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -233,36 +233,36 @@ fun Results(
                     Text(
                         text = "+${evaluation.meritEarned}",
                         color = primaryGold,
-                        fontSize = 20.sp,
+                        fontSize = 24.sp,
                         fontWeight = FontWeight.Black
                     )
                 }
                 
-                Box(modifier = Modifier.width(1.dp).height(30.dp).background(Color.White.copy(alpha = 0.05f)))
+                Box(modifier = Modifier.width(1.dp).height(32.dp).background(Color.White.copy(alpha = 0.05f)))
                 
                 Column(horizontalAlignment = Alignment.End) {
                     Text("Lexicon", color = Color.Gray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     Text(
                         text = "${submission.wordCount} Words",
                         color = Color.White,
-                        fontSize = 14.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(40.dp))
+        Spacer(modifier = Modifier.height(48.dp))
 
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedButton(
                 onClick = onNavigateBack,
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
+                modifier = Modifier.weight(1f).height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
             ) {
                 Text("Back", fontWeight = FontWeight.Bold)
@@ -270,15 +270,15 @@ fun Results(
 
             Button(
                 onClick = onNavigateToPractice,
-                modifier = Modifier.weight(1.5f),
-                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.weight(1.4f).height(52.dp),
+                shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)
             ) {
                 Text("Practice Again", fontWeight = FontWeight.Black)
             }
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(40.dp))
     }
 }
 

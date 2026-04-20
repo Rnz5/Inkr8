@@ -87,12 +87,11 @@ fun Competitions(
     )
 
     Column(
-        modifier = Modifier.fillMaxSize().background(backgroundDark)
+        modifier = Modifier.fillMaxSize().background(backgroundDark).statusBarsPadding().navigationBarsPadding().padding(16.dp)
     ) {
         LazyColumn(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(24.dp),
-            contentPadding = PaddingValues(16.dp)
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             item {
                 UserHeaderCard(
@@ -260,8 +259,10 @@ fun Competitions(
             }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -275,7 +276,7 @@ fun Competitions(
             }
 
             Text(
-                text = "pre-alpha v0.4.6",
+                text = "pre-alpha v0.4.7",
                 color = Color.DarkGray,
                 fontSize = 8.sp,
                 letterSpacing = 1.sp

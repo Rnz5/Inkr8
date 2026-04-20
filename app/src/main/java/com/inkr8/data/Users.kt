@@ -5,6 +5,8 @@ data class Users(
     val name: String = "",
     val email: String? = null,
     var merit: Long = 1000,
+    val meritCap: Long = 50000,
+    val meritHold: Long = 0,
     val rating: Long = 0,
     val reputation: Long = 0,
     val bestScore: Double = 0.0,
@@ -25,4 +27,4 @@ data class Users(
     val isPhilosopher: Boolean = false,
     val philosopherSince: Long? = null,
     val hasChosenUsername: Boolean = false
-    )
+)

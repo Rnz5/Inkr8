@@ -133,7 +133,7 @@ fun HomeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = currentWord?.word?.uppercase() ?: "...",
+                        text = currentWord?.word ?: "...",
                         textAlign = TextAlign.Center,
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Black,
@@ -274,7 +274,7 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(40.dp))
 
         Text(
-            text = "pre-alpha v0.4.6",
+            text = "pre-alpha v0.4.7",
             fontSize = 9.sp,
             color = Color.DarkGray,
             letterSpacing = 2.sp,

@@ -287,6 +287,20 @@ fun AppRoot(
                         Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
                     }
                 )
+            },
+            onExpandCap = {
+                userRepository.applyMeritAction(
+                    action = "EXPAND_MERIT_CAP",
+                    onSuccess = {
+                        userRepository.getUserById(currentUser.id) { updatedUser ->
+                            updatedUser?.let { currentUser = it }
+                            Toast.makeText(context, "Cap Expanded", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    onError = { e ->
+                        Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
+                    }
+                )
             }
         )
         Screen.results -> {
@@ -302,67 +316,37 @@ fun AppRoot(
                         val submissionId = latestSubmission!!.id
                         isUnlockingFeedback = true
 
-                        if (currentUser.isPhilosopher) {
-                            submissionRepository.unlockFeedbackExpansion(
-                                submissionId = submissionId,
-                                skipMeritCost = true,
-                                onSuccess = {
-                                    isUnlockingFeedback = false
-
-                                    submissionRepository.getLastSubmission(
-                                        onSuccess = { updatedSubmission ->
-                                            latestSubmission = updatedSubmission
-                                            Toast.makeText(
-                                                context,
-                                                "Expanded for free",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        },
-                                        onError = { e ->
-                                            e.printStackTrace()
-                                        }
+                        submissionRepository.unlockFeedbackExpansion(
+                            submissionId = submissionId,
+                            skipMeritCost = currentUser.isPhilosopher,
+                            onSuccess = { cost ->
+                                isUnlockingFeedback = false
+                                // Optimistically update latestSubmission
+                                latestSubmission = latestSubmission?.let { current ->
+                                    current.copy(
+                                        evaluation = current.evaluation?.copy(feedbackUnlocked = true)
                                     )
-                                },
-                                onError = { e ->
-                                    isUnlockingFeedback = false
-                                    Toast.makeText(
-                                        context,
-                                        e.message ?: "Failed to expand feedback",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
                                 }
-                            )
-                        } else {
-                            submissionRepository.unlockFeedbackExpansion(
-                                submissionId = submissionId,
-                                skipMeritCost = false,
-                                onSuccess = { cost ->
-                                    isUnlockingFeedback = false
 
-                                    submissionRepository.getLastSubmission(
-                                        onSuccess = { updatedSubmission ->
-                                            latestSubmission = updatedSubmission
-                                            Toast.makeText(
-                                                context,
-                                                "Expanded for $cost Merit",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        },
-                                        onError = { e ->
-                                            e.printStackTrace()
-                                        }
-                                    )
-                                },
-                                onError = { e ->
-                                    isUnlockingFeedback = false
-                                    Toast.makeText(
-                                        context,
-                                        e.message ?: "Failed to expand feedback",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                userRepository.getUserById(currentUser.id) { updatedUser ->
+                                    updatedUser?.let { currentUser = it }
                                 }
-                            )
-                        }
+
+                                Toast.makeText(
+                                    context,
+                                    if (currentUser.isPhilosopher) "Decrypted" else "Decrypted for $cost Merit",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            },
+                            onError = { e ->
+                                isUnlockingFeedback = false
+                                Toast.makeText(
+                                    context,
+                                    e.message ?: "Failed to expand feedback",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        )
                     },
                     onNavigateBack = {
                         if (currentUser.isPhilosopher) {
@@ -636,7 +620,8 @@ fun AppRoot(
                                 Toast.makeText(context, e.message, Toast.LENGTH_SHORT).show()
                             }
                         )
-                    }
+                    },
+                    onExpandCap = {}
                 )
             } else {
                 Box(

@@ -8,7 +8,8 @@ type MeritAction =
   | "REWARD_PRACTICE"
   | "REWARD_RANKED"
   | "CHANGE_USERNAME"
-  | "SAVE_SUBMISSION";
+  | "SAVE_SUBMISSION"
+  | "EXPAND_MERIT_CAP";
 
 function validateUsername(username: string): string | null {
   if (username.length < 2) return "Username must be at least 2 characters.";
@@ -53,11 +54,27 @@ export const applyMeritAction = onCall(
 
       const user = userSnap.data();
       const currentMerit = user?.merit ?? 0;
+      const meritCap = user?.meritCap ?? 50000;
       const rankedWinStreak = user?.rankedWinStreak ?? 0;
       const rankedLossStreak = user?.rankedLossStreak ?? 0;
       const reputation = user?.reputation ?? 0;
 
       switch (action) {
+      case "EXPAND_MERIT_CAP": {
+        const cost = Math.floor(meritCap * 0.25);
+        const expansionAmount = 10000;
+
+        if (currentMerit < cost) {
+          throw new HttpsError("failed-precondition", "Insufficient Merit for expansion.");
+        }
+
+        tx.update(userRef, {
+          merit: currentMerit - cost,
+          meritCap: meritCap + expansionAmount,
+        });
+        break;
+      }
+
       case "PURCHASE_EXAMPLE_SENTENCE": {
         const cost = 25;
 

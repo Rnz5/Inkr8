@@ -4,6 +4,7 @@ data class FirestoreEvaluation(
     val submissionId: String? = null,
     val finalScore: Double = 0.0,
     val feedback: String = "",
+    val expandedFeedback: String? = null,
     val expanded: Boolean = false,
     val resultStatus: String = "",
     val meritEarned: Long = 0,

@@ -8,6 +8,8 @@ object EconomyConfig{
     const val CHANGE_USERNAME: Long = 1000
     const val CHANGE_PFP: Long = 500
     const val CHANGE_BANNER: Long = 750
+    const val EXPAND_CAP_AMOUNT: Long = 10000
+    const val EXPAND_CAP_COST_PERCENT: Double = 0.25
 
     //Ranked mode
     const val BASE_COST_RANKED: Long = 100

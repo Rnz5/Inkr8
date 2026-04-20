@@ -114,7 +114,7 @@ fun Practice(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "pre-alpha v0.4.6",
+                text = "pre-alpha v0.4.7",
                 color = Color.DarkGray,
                 fontSize = 8.sp,
                 letterSpacing = 1.sp
