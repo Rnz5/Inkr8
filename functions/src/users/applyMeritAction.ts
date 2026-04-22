@@ -1,5 +1,6 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {db} from "../firebase/admin";
+import {calculateRankedEntryCost} from "../utils/meritCalculator";
 
 type MeritAction =
   | "PURCHASE_EXAMPLE_SENTENCE"
@@ -147,30 +148,11 @@ export const applyMeritAction = onCall(
       }
 
       case "ENTER_RANKED": {
-        let modifier = 1.0;
-
-        if (rankedWinStreak > 0) {
-          modifier += Math.min(rankedWinStreak * 0.05, 0.75);
-        }
-        if (rankedLossStreak > 0) {
-          modifier -= Math.min(rankedLossStreak * 0.05, 0.4);
-        }
-
-        let repModifier = 1.0;
-
-        if (reputation >= 900) repModifier = 0.80;
-        else if (reputation >= 700) repModifier = 0.88;
-        else if (reputation >= 400) repModifier = 0.94;
-        else if (reputation >= 200) repModifier = 0.97;
-        else if (reputation <= -900) repModifier = 1.40;
-        else if (reputation <= -700) repModifier = 1.30;
-        else if (reputation <= -400) repModifier = 1.20;
-        else if (reputation <= -200) repModifier = 1.12;
-
-        modifier *= repModifier;
-
-        const baseCost = 100;
-        const cost = Math.max(Math.floor(baseCost * modifier), 1);
+        const cost = calculateRankedEntryCost(
+          rankedWinStreak,
+          rankedLossStreak,
+          reputation
+        );
 
         if (currentMerit < cost) {
           throw new HttpsError("failed-precondition", "Not enough Merit.");

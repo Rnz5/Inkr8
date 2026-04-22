@@ -41,14 +41,15 @@ export const unlockFeedbackExpansion = onCall(
       }
 
       if (submission.authorId !== uid) {
-        throw new
-        HttpsError("permission-denied", "This submission is not yours.");
+        throw new HttpsError("permission-denied", "This submission is not yours.");
       }
 
-      if (submission.playmode !== "PRACTICE") {
+      const isPhilosopher = user?.isPhilosopher === true;
+
+      if (submission.playmode !== "PRACTICE" && !isPhilosopher) {
         throw new HttpsError(
           "failed-precondition",
-          "Feedback expansion is only available for practice submissions."
+          "Feedback expansion is only available for practice submissions for standard users."
         );
       }
 
@@ -67,14 +68,18 @@ export const unlockFeedbackExpansion = onCall(
         );
       }
 
-      const currentMerit = user?.merit ?? 0;
-      if (currentMerit < EXPAND_FEEDBACK_COST) {
-        throw new HttpsError("failed-precondition", "Not enough Merit.");
-      }
+      const cost = isPhilosopher ? 0 : EXPAND_FEEDBACK_COST;
 
-      tx.update(userRef, {
-        merit: currentMerit - EXPAND_FEEDBACK_COST,
-      });
+      if (cost > 0) {
+        const currentMerit = user?.merit ?? 0;
+        if (currentMerit < cost) {
+          throw new HttpsError("failed-precondition", "Not enough Merit.");
+        }
+
+        tx.update(userRef, {
+          merit: currentMerit - cost,
+        });
+      }
 
       tx.update(submissionRef, {
         "evaluation.isExpanded": true,
@@ -83,7 +88,7 @@ export const unlockFeedbackExpansion = onCall(
 
     return {
       success: true,
-      cost: EXPAND_FEEDBACK_COST,
+      message: "Feedback expansion unlocked.",
     };
   }
 );

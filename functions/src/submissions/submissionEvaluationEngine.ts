@@ -4,6 +4,7 @@ import {OPENAI_API_KEY, evaluateWithR8} from "../r8/evaluateWithR8";
 import {calculateMerit} from "../utils/meritCalculator";
 import {calculateNewRating} from "../utils/ratingCalculator";
 import {onRankedCompleted} from "../utils/reputationManager";
+import {pruneOldSubmissions} from "./pruneOldSubmissions";
 
 export const submissionEvaluationEngine = onDocumentCreated(
   {
@@ -91,16 +92,6 @@ export const submissionEvaluationEngine = onDocumentCreated(
       });
 
       const userRef = db.collection("users").doc(authorId);
-      const userSnap = await userRef.get();
-
-      if (!userSnap.exists) {
-        throw new Error("User not found for submission evaluation");
-      }
-
-      const userData = userSnap.data() ?? {};
-      const currentRating = Number(userData.rating ?? 0);
-      const currentMerit = Number(userData.merit ?? 0);
-      const meritCap = Number(userData.meritCap ?? 50000);
 
       const meritEarned = calculateMerit(
         result.finalScore,
@@ -109,42 +100,56 @@ export const submissionEvaluationEngine = onDocumentCreated(
         playmode === "RANKED"
       );
 
-      let meritToLiquid = meritEarned;
-      let meritToHold = 0;
-
-      if (currentMerit + meritEarned > meritCap) {
-        meritToLiquid = Math.max(0, meritCap - currentMerit);
-        meritToHold = meritEarned - meritToLiquid;
-      }
-
-      let userUpdates: Record<string, unknown> = {};
-
-      if (playmode === "RANKED") {
-        const newRating = calculateNewRating(
-          currentRating,
-          result.finalScore
-        );
-
-        const newReputation = onRankedCompleted(
-          Number(userData.reputation ?? 0)
-        );
-
-        userUpdates = {
-          merit: FieldValue.increment(meritToLiquid),
-          meritHold: FieldValue.increment(meritToHold),
-          rating: newRating,
-          reputation: newReputation,
-          currentlyInRanked: false,
-          rankedSessionStartedAt: FieldValue.delete(),
-        };
-      } else {
-        userUpdates = {
-          merit: FieldValue.increment(meritToLiquid),
-          meritHold: FieldValue.increment(meritToHold),
-        };
-      }
-
       await db.runTransaction(async (tx) => {
+        const userSnap = await tx.get(userRef);
+        if (!userSnap.exists) {
+          throw new Error("User not found for submission evaluation");
+        }
+
+        const userData = userSnap.data() ?? {};
+        const currentRating = Number(userData.rating ?? 0);
+        const currentMerit = Number(userData.merit ?? 0);
+        const meritCap = Number(userData.meritCap ?? 50000);
+        const currentBestScore = Number(userData.bestScore ?? 0);
+
+        let meritToLiquid = meritEarned;
+        let meritToHold = 0;
+
+        if (currentMerit + meritEarned > meritCap) {
+          meritToLiquid = Math.max(0, meritCap - currentMerit);
+          meritToHold = meritEarned - meritToLiquid;
+        }
+
+        let userUpdates: Record<string, unknown> = {
+          merit: FieldValue.increment(meritToLiquid),
+          meritHold: FieldValue.increment(meritToHold),
+          submissionsCount: FieldValue.increment(1),
+          bestScore: Math.max(currentBestScore, result.finalScore),
+        };
+
+        let ratingChange = 0;
+
+        if (playmode === "RANKED") {
+          const newRating = calculateNewRating(
+            currentRating,
+            result.finalScore
+          );
+
+          ratingChange = newRating - currentRating;
+
+          const newReputation = onRankedCompleted(
+            Number(userData.reputation ?? 0)
+          );
+
+          userUpdates = {
+            ...userUpdates,
+            rating: newRating,
+            reputation: newReputation,
+            currentlyInRanked: false,
+            rankedSessionStartedAt: FieldValue.delete(),
+          };
+        }
+
         tx.update(submissionRef, {
           evaluation: {
             submissionId: snapshot.id,
@@ -152,6 +157,7 @@ export const submissionEvaluationEngine = onDocumentCreated(
             feedback: result.feedback,
             meritEarned,
             meritToHold,
+            ratingChange,
             resultStatus: "EVALUATED",
           },
           status: "EVALUATED",
@@ -164,8 +170,9 @@ export const submissionEvaluationEngine = onDocumentCreated(
       console.log("submissionEvaluationEngine: finished successfully", {
         submissionId: snapshot.id,
         meritEarned,
-        meritToHold,
       });
+
+      await pruneOldSubmissions(authorId);
     } catch (error) {
       console.error("submissionEvaluationEngine failed", {
         submissionId: snapshot.id,
@@ -177,6 +184,25 @@ export const submissionEvaluationEngine = onDocumentCreated(
         evaluationError:
           error instanceof Error ? error.message : "Unknown evaluation failure",
       });
+
+      const authorId = data.authorId;
+      if (authorId && data.playmode === "RANKED") {
+        try {
+          await db.collection("users").doc(authorId).update({
+            currentlyInRanked: false,
+            rankedSessionStartedAt: FieldValue.delete(),
+          });
+          console.log("submissionEvaluationEngine: cleaned up ranked session after failure", {
+            authorId,
+            submissionId: snapshot.id,
+          });
+        } catch (cleanupError) {
+          console.error("submissionEvaluationEngine: failed to clean up ranked session", {
+            authorId,
+            cleanupError,
+          });
+        }
+      }
     }
   }
 );

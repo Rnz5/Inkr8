@@ -1,6 +1,5 @@
 package com.inkr8.repository
 
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.inkr8.data.Users
@@ -322,41 +321,13 @@ class UserRepository(
     }
 
     fun enablePhilosopher(
-        userId: String,
         onSuccess: () -> Unit,
         onError: (Exception) -> Unit
     ) {
-        FirebaseFirestore.getInstance()
-            .collection("users")
-            .document(userId)
-            .update(
-                mapOf(
-                    "isPhilosopher" to true,
-                    "philosopherSince" to System.currentTimeMillis()
-                )
-            )
+        functions
+            .getHttpsCallable("activatePhilosopherStatus")
+            .call()
             .addOnSuccessListener { onSuccess() }
             .addOnFailureListener { onError(it) }
     }
-
-    fun disablePhilosopher(
-        userId: String,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) {
-        FirebaseFirestore.getInstance()
-            .collection("users")
-            .document(userId)
-            .update(
-                mapOf(
-                    "isPhilosopher" to false,
-                    "philosopherSince" to null
-                )
-            )
-            .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onError(it) }
-    }
-
 }
-
-

@@ -23,6 +23,7 @@ import com.inkr8.data.*
 import com.inkr8.repository.ThemeRepository
 import com.inkr8.repository.TopicRepository
 import com.inkr8.ui.theme.Inkr8Theme
+import com.inkr8.utils.SystemConfig
 import com.inkr8.utils.UserHeaderCard
 
 @Composable
@@ -114,7 +115,7 @@ fun Practice(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "pre-alpha v0.4.7",
+                text = SystemConfig.APP_VERSION,
                 color = Color.DarkGray,
                 fontSize = 8.sp,
                 letterSpacing = 1.sp

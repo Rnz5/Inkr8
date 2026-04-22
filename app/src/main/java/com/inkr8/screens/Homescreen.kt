@@ -25,6 +25,7 @@ import com.inkr8.economy.EconomyConfig
 import com.inkr8.repository.UserRepository
 import com.inkr8.repository.WordRepository
 import com.inkr8.ui.theme.Inkr8Theme
+import com.inkr8.utils.SystemConfig
 import com.inkr8.utils.UserHeaderCard
 import kotlinx.coroutines.delay
 
@@ -274,7 +275,7 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(40.dp))
 
         Text(
-            text = "pre-alpha v0.4.7",
+            text = SystemConfig.APP_VERSION,
             fontSize = 9.sp,
             color = Color.DarkGray,
             letterSpacing = 2.sp,

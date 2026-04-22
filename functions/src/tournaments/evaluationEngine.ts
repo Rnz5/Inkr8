@@ -104,6 +104,7 @@ export const tournamentEvaluationEngine = onDocumentUpdated(
 
       batch.update(tournamentRef, {
         status: "COMPLETED",
+        completedAt: Date.now(),
       });
 
       await batch.commit();

@@ -63,13 +63,20 @@ fun AppRoot(
 
     LaunchedEffect(currentUser.id, currentUser.rating, currentUser.currentlyInRanked) {
         if (currentUser.currentlyInRanked) {
-            val newRep = ReputationManager.onRankedAbandoned(currentUser.reputation)
+            val sessionStartTime = currentUser.rankedSessionStartedAt ?: 0L
+            val sessionAge = System.currentTimeMillis() - sessionStartTime
 
-            userRepository.updateReputation(currentUser.id, newRep)
-            userRepository.finishRankedSession(currentUser.id)
+            if (sessionAge > 120_000L) {
+                val newRep = ReputationManager.onRankedAbandoned(currentUser.reputation)
 
-            userRepository.getUserById(currentUser.id) { updatedUser ->
-                updatedUser?.let { currentUser = it }
+                userRepository.updateReputation(currentUser.id, newRep)
+                userRepository.finishRankedSession(currentUser.id)
+
+                userRepository.getUserById(currentUser.id) { updatedUser ->
+                    updatedUser?.let { currentUser = it }
+                }
+                
+                Toast.makeText(context, "Ranked session abandoned. Reputation decreased.", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -833,7 +840,6 @@ fun AppRoot(
                 },
                 onSubscribe = {
                     userRepository.enablePhilosopher(
-                        userId = currentUser.id,
                         onSuccess = {
                             userRepository.getUserById(currentUser.id) { updatedUser ->
                                 updatedUser?.let { currentUser = it }

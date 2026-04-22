@@ -61,7 +61,7 @@ fun Results(
         }
 
     val isUnlockedByMerit = evaluation.feedbackUnlocked
-    val isEffectivelyUnlocked = isUnlockedByMerit || isPhilosopher
+    val isEffectivelyUnlocked = isUnlockedByMerit || (isPhilosopher && evaluation.expandedFeedback != null)
     
     val feedbackToShow = if (isEffectivelyUnlocked) {
         evaluation.expandedFeedback ?: evaluation.feedback
@@ -154,7 +154,9 @@ fun Results(
                         fontWeight = FontWeight.Bold
                     )
                     
-                    if (!isEffectivelyUnlocked && submission.playmode == "PRACTICE") {
+                    val canExpand = submission.playmode == "PRACTICE" || isPhilosopher
+                    
+                    if (!isEffectivelyUnlocked && canExpand) {
                         Button(
                             onClick = onUnlockFeedback,
                             enabled = !isUnlockingFeedback,
@@ -170,12 +172,12 @@ fun Results(
                             Text(
                                 text = if (isUnlockingFeedback) "Decrypting..."
                                        else if (isPhilosopher) "Expand • FREE"
-                                       else "Expand • 55",
+                                       else "Expand • 50",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Black
                             )
                         }
-                    } else if (isUnlockedByMerit || isPhilosopher) {
+                    } else if (isEffectivelyUnlocked) {
                         Box(
                             modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(primaryGold.copy(alpha = 0.1f)).padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
