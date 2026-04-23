@@ -5,6 +5,7 @@ import com.google.firebase.firestore.Query
 import com.inkr8.data.Users
 import com.inkr8.economy.EconomyConfig
 import com.google.firebase.functions.FirebaseFunctions
+import com.inkr8.rating.League
 
 class UserRepository(
     private val functions: FirebaseFunctions = FirebaseFunctions.getInstance(),
@@ -13,12 +14,40 @@ class UserRepository(
 
     private val usersCollection = firestore.collection("users")
 
+    companion object {
+        private var cachedTop100: List<Users>? = null
+        private var lastFetchTime: Long = 0
+        private const val CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+    }
+
     fun getAllUsers(onResult: (List<Users>) -> Unit) {
         firestore.collection("users")
             .get()
             .addOnSuccessListener { snapshot ->
                 val users = snapshot.toObjects(Users::class.java)
                 onResult(users)
+            }
+    }
+
+    fun getLeagueCounts(onResult: (Map<League, Int>) -> Unit) {
+        firestore.collection("metadata").document("rankings")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                val counts = mutableMapOf<League, Int>()
+                val rawMap = snapshot.get("leagueCounts") as? Map<String, Long> ?: emptyMap()
+                
+                rawMap.forEach { (leagueName, count) ->
+                    try {
+                        val league = League.valueOf(leagueName)
+                        counts[league] = count.toInt()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+                onResult(counts)
+            }
+            .addOnFailureListener {
+                onResult(emptyMap())
             }
     }
 
@@ -273,9 +302,17 @@ class UserRepository(
     fun getTop100Users(
         onResult: (List<Users>) -> Unit
     ) {
+        val currentTime = System.currentTimeMillis()
+        if (cachedTop100 != null && (currentTime - lastFetchTime) < CACHE_DURATION) {
+            onResult(cachedTop100!!)
+            return
+        }
+
         firestore.collection("users").orderBy("rating", Query.Direction.DESCENDING).limit(100).get().addOnSuccessListener {
             snapshot ->
                 val users = snapshot.documents.mapNotNull { it.toObject(Users::class.java) }
+                cachedTop100 = users
+                lastFetchTime = currentTime
                 onResult(users)
             }
     }

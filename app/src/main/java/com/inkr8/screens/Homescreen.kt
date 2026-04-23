@@ -27,7 +27,6 @@ import com.inkr8.repository.WordRepository
 import com.inkr8.ui.theme.Inkr8Theme
 import com.inkr8.utils.SystemConfig
 import com.inkr8.utils.UserHeaderCard
-import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(
@@ -50,14 +49,9 @@ fun HomeScreen(
     val surfaceDark = Color(0xFF1A1A1A)
 
     LaunchedEffect(Unit) {
-        suspend fun loadNewWord() {
+        if (currentWord == null) {
             currentWord = wordRepository.getSingleRandomWord()
             showSentence = false
-        }
-        loadNewWord()
-        while (true) {
-            delay(60000L)
-            loadNewWord()
         }
     }
 

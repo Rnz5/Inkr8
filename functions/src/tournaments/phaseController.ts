@@ -2,30 +2,52 @@ import {onSchedule} from "firebase-functions/v2/scheduler";
 import {db} from "../firebase/admin";
 
 /**
- * Returns a random list of words from the words collection.
+ * returns a random words using randomIndex pattern
  *
- * @param {number} count - Number of words to return.
- * @return {Promise<string[]>} Randomly selected words.
+ * @param {number} count
+ * @return {Promise<string[]>}
  */
 async function getRandomWords(count: number): Promise<string[]> {
-  const snapshot = await db.collection("words").get();
-  const allWords = snapshot.docs
-    .map((doc) => doc.data().word as string)
-    .filter(Boolean);
+  const randomOffset = Math.random();
 
-  const shuffled = allWords.sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
+  const snapshot = await db.collection("words")
+    .where("isActive", "==", true)
+    .where("randomIndex", ">=", randomOffset)
+    .limit(count)
+    .get();
+
+  const results: string[] = [];
+  snapshot.docs.forEach((doc) => {
+    const word = doc.data().word as string;
+    if (word) results.push(word);
+  });
+
+  if (results.length < count) {
+    const remaining = count - results.length;
+    const secondSnapshot = await db.collection("words")
+      .where("isActive", "==", true)
+      .where("randomIndex", "<", randomOffset)
+      .limit(remaining)
+      .get();
+
+    secondSnapshot.docs.forEach((doc) => {
+      const word = doc.data().word as string;
+      if (word) results.push(word);
+    });
+  }
+
+  return results.sort(() => Math.random() - 0.5);
 }
 
 /**
- * Returns a random theme and one random topic belonging to that theme.
+ * returns random theme and random topic from the theme
  *
  * @return {Promise<{
  *   themeId: string;
  *   themeName: string;
  *   topicId: string;
  *   topicName: string;
- * }>} Random theme/topic pair.
+ * }>}
  */
 async function getRandomThemeAndTopic(): Promise<{
   themeId: string;
@@ -71,6 +93,16 @@ export const tournamentPhaseController = onSchedule(
     region: "us-central1",
   },
   async () => {
+    const countSnapshot = await db
+      .collection("tournaments")
+      .where("status", "in", ["ENROLLING", "ACTIVE"])
+      .count()
+      .get();
+
+    if (countSnapshot.data().count === 0) {
+      return;
+    }
+
     const now = Date.now();
 
     const snapshot = await db

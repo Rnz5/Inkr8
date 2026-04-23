@@ -45,6 +45,7 @@ export const applyMeritAction = onCall(
     }
 
     const userRef = db.collection("users").doc(uid);
+    let updatedFields: Record<string, string | number | boolean> = {};
 
     await db.runTransaction(async (tx) => {
       const userSnap = await tx.get(userRef);
@@ -69,10 +70,11 @@ export const applyMeritAction = onCall(
           throw new HttpsError("failed-precondition", "Insufficient Merit for expansion.");
         }
 
-        tx.update(userRef, {
+        updatedFields = {
           merit: currentMerit - cost,
           meritCap: meritCap + expansionAmount,
-        });
+        };
+        tx.update(userRef, updatedFields);
         break;
       }
 
@@ -83,9 +85,10 @@ export const applyMeritAction = onCall(
           throw new HttpsError("failed-precondition", "Not enough Merit.");
         }
 
-        tx.update(userRef, {
+        updatedFields = {
           merit: currentMerit - cost,
-        });
+        };
+        tx.update(userRef, updatedFields);
         break;
       }
 
@@ -96,9 +99,10 @@ export const applyMeritAction = onCall(
           throw new HttpsError("failed-precondition", "Not enough Merit.");
         }
 
-        tx.update(userRef, {
+        updatedFields = {
           merit: currentMerit - cost,
-        });
+        };
+        tx.update(userRef, updatedFields);
         break;
       }
 
@@ -137,9 +141,10 @@ export const applyMeritAction = onCall(
           throw new HttpsError("already-exists", "Submission is already saved.");
         }
 
-        tx.update(userRef, {
+        updatedFields = {
           merit: currentMerit - cost,
-        });
+        };
+        tx.update(userRef, updatedFields);
 
         tx.update(subRef, {
           isSaved: true,
@@ -158,11 +163,13 @@ export const applyMeritAction = onCall(
           throw new HttpsError("failed-precondition", "Not enough Merit.");
         }
 
-        tx.update(userRef, {
+        const rankedSessionStartedAt = Date.now();
+        updatedFields = {
           merit: currentMerit - cost,
           currentlyInRanked: true,
-          rankedSessionStartedAt: Date.now(),
-        });
+          rankedSessionStartedAt: rankedSessionStartedAt,
+        };
+        tx.update(userRef, updatedFields);
         break;
       }
 
@@ -214,10 +221,11 @@ export const applyMeritAction = onCall(
           createdAt: Date.now(),
         });
 
-        tx.update(userRef, {
+        updatedFields = {
           name: rawNewUsername,
           merit: currentMerit - cost,
-        });
+        };
+        tx.update(userRef, updatedFields);
         break;
       }
 
@@ -234,6 +242,9 @@ export const applyMeritAction = onCall(
       }
     });
 
-    return {success: true};
+    return {
+      success: true,
+      updatedFields,
+    };
   }
 );

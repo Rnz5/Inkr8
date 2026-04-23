@@ -10,6 +10,7 @@ object EconomyConfig{
     const val CHANGE_BANNER: Long = 750
     const val EXPAND_CAP_AMOUNT: Long = 10000
     const val EXPAND_CAP_COST_PERCENT: Double = 0.25
+    const val EXPAND_FEEDBACK_COST: Long = 50
 
     //Ranked mode
     const val BASE_COST_RANKED: Long = 100

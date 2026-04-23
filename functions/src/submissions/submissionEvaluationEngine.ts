@@ -5,6 +5,7 @@ import {calculateMerit} from "../utils/meritCalculator";
 import {calculateNewRating} from "../utils/ratingCalculator";
 import {onRankedCompleted} from "../utils/reputationManager";
 import {pruneOldSubmissions} from "./pruneOldSubmissions";
+import {getLeagueFromRating} from "../utils/leagueManager";
 
 export const submissionEvaluationEngine = onDocumentCreated(
   {
@@ -148,6 +149,19 @@ export const submissionEvaluationEngine = onDocumentCreated(
             currentlyInRanked: false,
             rankedSessionStartedAt: FieldValue.delete(),
           };
+
+          const oldLeague = getLeagueFromRating(currentRating);
+          const newLeague = getLeagueFromRating(newRating);
+
+          if (oldLeague !== newLeague) {
+            const statsRef = db.collection("metadata").doc("rankings");
+            tx.set(statsRef, {
+              leagueCounts: {
+                [oldLeague]: FieldValue.increment(-1),
+                [newLeague]: FieldValue.increment(1),
+              },
+            }, {merge: true});
+          }
         }
 
         tx.update(submissionRef, {

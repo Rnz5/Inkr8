@@ -60,7 +60,7 @@ export const unlockFeedbackExpansion = onCall(
         );
       }
 
-      const alreadyExpanded = submission.evaluation?.isExpanded === true;
+      const alreadyExpanded = submission.evaluation?.feedbackUnlocked === true;
       if (alreadyExpanded) {
         throw new HttpsError(
           "failed-precondition",
@@ -82,7 +82,7 @@ export const unlockFeedbackExpansion = onCall(
       }
 
       tx.update(submissionRef, {
-        "evaluation.isExpanded": true,
+        "evaluation.feedbackUnlocked": true,
       });
     });
 

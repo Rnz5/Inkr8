@@ -1,7 +1,7 @@
 /**
- * calculates merit cost for entering a ranked match.
+ * calculates the merit cost for entering ranked
  *
- * @param {number} winStreak  win streak
+ * @param {number} winStreak win streak
  * @param {number} lossStreak loss streak
  * @param {number} reputation reputation
  * @return {number} merit cost
@@ -38,13 +38,14 @@ export function calculateRankedEntryCost(
 }
 
 /**
- * this calculates merit earned from a submission score
+ * merit earned from a submission score using a tiered base system
+ * this rewards high quality consistently while providing effort bonuses for word count ;)
  *
- * @param {number} score 0-100%
- * @param {number} wordCount mumber of words
- * @param {string} gamemode gamemode string.
+ * @param {number} score 0-100
+ * @param {number} wordCount number of words
+ * @param {string} gamemode gamemode string
  * @param {boolean} isRanked whether it was a ranked match
- * @return {number} total merit earned
+ * @return {number} total
  */
 export function calculateMerit(
   score: number,
@@ -52,14 +53,27 @@ export function calculateMerit(
   gamemode: string,
   isRanked: boolean
 ): number {
-  const baseRating = score / 100.0;
-  let multiplier = 1.0;
+  let baseReward = 0;
 
+  // tiers
+  if (score >= 95) baseReward = 500;
+  else if (score >= 90) baseReward = 400;
+  else if (score >= 80) baseReward = 300;
+  else if (score >= 70) baseReward = 200;
+  else if (score >= 60) baseReward = 125;
+  else if (score >= 40) baseReward = 60;
+  else baseReward = 25;
+
+  // effort Bonus: rewards longer compositions without making them the primary factor
+  // ~1 merit per 10 words, capped to prevent fluffing
+  const effortBonus = Math.min(Math.floor(wordCount / 10), 40);
+
+  let finalMerit = baseReward + effortBonus;
+
+  // ranked multiplier
   if (isRanked) {
-    multiplier = 1.5;
+    finalMerit = Math.floor(finalMerit * 1.5);
   }
 
-  // example
-  const earnings = (wordCount * 0.5) * baseRating * multiplier;
-  return Math.floor(earnings);
+  return finalMerit;
 }

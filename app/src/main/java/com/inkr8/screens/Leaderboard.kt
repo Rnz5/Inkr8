@@ -141,6 +141,17 @@ fun LeaderboardContent(
                     }
                 }
 
+                item {
+                    Text(
+                        text = "The Pantheon updates every 5 minutes.",
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.DarkGray,
+                        letterSpacing = 1.sp
+                    )
+                }
+
                 item { Spacer(modifier = Modifier.height(16.dp)) }
 
                 item {
