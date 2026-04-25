@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.inkr8.data.Evaluation
 import com.inkr8.data.SubmissionStatus
 import com.inkr8.data.Submissions
+import com.inkr8.economy.EconomyConfig
 import com.inkr8.ui.theme.Inkr8Theme
 
 private val previewSubmission = Submissions(
@@ -154,7 +155,7 @@ fun Results(
                         fontWeight = FontWeight.Bold
                     )
                     
-                    val canExpand = submission.playmode == "PRACTICE" || isPhilosopher
+                    val canExpand = submission.playmode == "PRACTICE" || submission.playmode == "RANKED" || isPhilosopher
                     
                     if (!isEffectivelyUnlocked && canExpand) {
                         Button(
@@ -172,7 +173,7 @@ fun Results(
                             Text(
                                 text = if (isUnlockingFeedback) "Decrypting..."
                                        else if (isPhilosopher) "Expand • FREE"
-                                       else "Expand • 50",
+                                       else "Expand • ${EconomyConfig.EXPAND_FEEDBACK_COST}",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Black
                             )

@@ -1,11 +1,13 @@
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {db} from "../firebase/admin";
 import {calculateRankedEntryCost} from "../utils/meritCalculator";
+import {onRankedAbandoned} from "../utils/reputationManager";
 
 type MeritAction =
   | "PURCHASE_EXAMPLE_SENTENCE"
   | "PURCHASE_REPUTATION_VIEW"
   | "ENTER_RANKED"
+  | "ABANDON_RANKED"
   | "REWARD_PRACTICE"
   | "REWARD_RANKED"
   | "CHANGE_USERNAME"
@@ -45,7 +47,7 @@ export const applyMeritAction = onCall(
     }
 
     const userRef = db.collection("users").doc(uid);
-    let updatedFields: Record<string, string | number | boolean> = {};
+    let updatedFields: Record<string, unknown> = {};
 
     await db.runTransaction(async (tx) => {
       const userSnap = await tx.get(userRef);
@@ -57,9 +59,9 @@ export const applyMeritAction = onCall(
       const user = userSnap.data();
       const currentMerit = user?.merit ?? 0;
       const meritCap = user?.meritCap ?? 50000;
-      const rankedWinStreak = user?.rankedWinStreak ?? 0;
-      const rankedLossStreak = user?.rankedLossStreak ?? 0;
-      const reputation = user?.reputation ?? 0;
+      let rankedWinStreak = user?.rankedWinStreak ?? 0;
+      let rankedLossStreak = user?.rankedLossStreak ?? 0;
+      let reputation = user?.reputation ?? 0;
 
       switch (action) {
       case "EXPAND_MERIT_CAP": {
@@ -153,6 +155,12 @@ export const applyMeritAction = onCall(
       }
 
       case "ENTER_RANKED": {
+        if (user?.currentlyInRanked) {
+          reputation = onRankedAbandoned(reputation);
+          rankedLossStreak += 1;
+          rankedWinStreak = 0;
+        }
+
         const cost = calculateRankedEntryCost(
           rankedWinStreak,
           rankedLossStreak,
@@ -168,6 +176,25 @@ export const applyMeritAction = onCall(
           merit: currentMerit - cost,
           currentlyInRanked: true,
           rankedSessionStartedAt: rankedSessionStartedAt,
+          reputation: reputation,
+          rankedLossStreak: rankedLossStreak,
+          rankedWinStreak: rankedWinStreak,
+        };
+        tx.update(userRef, updatedFields);
+        break;
+      }
+
+      case "ABANDON_RANKED": {
+        if (!user?.currentlyInRanked) {
+          throw new HttpsError("failed-precondition", "No active ranked session to abandon.");
+        }
+
+        updatedFields = {
+          reputation: onRankedAbandoned(reputation),
+          rankedLossStreak: rankedLossStreak + 1,
+          rankedWinStreak: 0,
+          currentlyInRanked: false,
+          rankedSessionStartedAt: null,
         };
         tx.update(userRef, updatedFields);
         break;

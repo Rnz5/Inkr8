@@ -197,7 +197,7 @@ class UserRepository(
 
     fun changeUsernameWithMerit(
         newUsername: String,
-        onSuccess: () -> Unit,
+        onSuccess: (Map<String, Any>?) -> Unit,
         onError: (Exception) -> Unit
     ) {
         val data = hashMapOf(
@@ -208,7 +208,11 @@ class UserRepository(
         functions
             .getHttpsCallable("applyMeritAction")
             .call(data)
-            .addOnSuccessListener { onSuccess() }
+            .addOnSuccessListener { result ->
+                val resData = result.data as? Map<String, Any>
+                val updates = resData?.get("updatedFields") as? Map<String, Any>
+                onSuccess(updates)
+            }
             .addOnFailureListener { error ->
                 onError(Exception(error.message ?: "Failed to change username"))
             }
@@ -244,7 +248,7 @@ class UserRepository(
 
     fun applyMeritAction(
         action: String,
-        onSuccess: () -> Unit,
+        onSuccess: (Map<String, Any>?) -> Unit,
         onError: (Exception) -> Unit
     ) {
         val data = hashMapOf(
@@ -254,7 +258,11 @@ class UserRepository(
         functions
             .getHttpsCallable("applyMeritAction")
             .call(data)
-            .addOnSuccessListener { onSuccess() }
+            .addOnSuccessListener { result ->
+                val resData = result.data as? Map<String, Any>
+                val updates = resData?.get("updatedFields") as? Map<String, Any>
+                onSuccess(updates)
+            }
             .addOnFailureListener { error: Exception ->
                 onError(Exception(error.message ?: "Failed to apply merit action"))
             }
@@ -358,13 +366,17 @@ class UserRepository(
     }
 
     fun enablePhilosopher(
-        onSuccess: () -> Unit,
+        onSuccess: (Map<String, Any>?) -> Unit,
         onError: (Exception) -> Unit
     ) {
         functions
             .getHttpsCallable("activatePhilosopherStatus")
             .call()
-            .addOnSuccessListener { onSuccess() }
+            .addOnSuccessListener { result ->
+                val resData = result.data as? Map<String, Any>
+                val updates = resData?.get("updatedFields") as? Map<String, Any>
+                onSuccess(updates)
+            }
             .addOnFailureListener { onError(it) }
     }
 }

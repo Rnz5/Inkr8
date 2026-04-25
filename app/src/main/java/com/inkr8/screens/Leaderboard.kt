@@ -41,8 +41,8 @@ fun LeaderboardScreen(
             top100 = users
         }
 
-        userRepository.getAllUsers { users ->
-            leagueCounts = users.filter { it.id != "R8" }.groupBy { League.fromRating(it.rating) }.mapValues { it.value.size }
+        userRepository.getLeagueCounts { counts ->
+            leagueCounts = counts
         }
     }
 

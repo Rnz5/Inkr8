@@ -5,7 +5,7 @@ import {calculateMerit} from "../utils/meritCalculator";
 import {calculateNewRating} from "../utils/ratingCalculator";
 import {onRankedCompleted} from "../utils/reputationManager";
 import {pruneOldSubmissions} from "./pruneOldSubmissions";
-import {getLeagueFromRating} from "../utils/leagueManager";
+import {getLeagueFromRating, LeagueName} from "../utils/leagueManager";
 
 export const submissionEvaluationEngine = onDocumentCreated(
   {
@@ -101,7 +101,7 @@ export const submissionEvaluationEngine = onDocumentCreated(
         playmode === "RANKED"
       );
 
-      await db.runTransaction(async (tx) => {
+      const leagueTransition = await db.runTransaction(async (tx) => {
         const userSnap = await tx.get(userRef);
         if (!userSnap.exists) {
           throw new Error("User not found for submission evaluation");
@@ -129,6 +129,7 @@ export const submissionEvaluationEngine = onDocumentCreated(
         };
 
         let ratingChange = 0;
+        let transition: { oldLeague: LeagueName; newLeague: LeagueName } | null = null;
 
         if (playmode === "RANKED") {
           const newRating = calculateNewRating(
@@ -150,17 +151,13 @@ export const submissionEvaluationEngine = onDocumentCreated(
             rankedSessionStartedAt: FieldValue.delete(),
           };
 
-          const oldLeague = getLeagueFromRating(currentRating);
-          const newLeague = getLeagueFromRating(newRating);
+          if (authorId !== "R8") {
+            const oldLeague = getLeagueFromRating(currentRating);
+            const newLeague = getLeagueFromRating(newRating);
 
-          if (oldLeague !== newLeague) {
-            const statsRef = db.collection("metadata").doc("rankings");
-            tx.set(statsRef, {
-              leagueCounts: {
-                [oldLeague]: FieldValue.increment(-1),
-                [newLeague]: FieldValue.increment(1),
-              },
-            }, {merge: true});
+            if (oldLeague !== newLeague) {
+              transition = {oldLeague, newLeague};
+            }
           }
         }
 
@@ -179,7 +176,21 @@ export const submissionEvaluationEngine = onDocumentCreated(
         });
 
         tx.update(userRef, userUpdates);
+
+        return transition;
       });
+
+      if (leagueTransition) {
+        const {oldLeague, newLeague} = leagueTransition;
+        const statsRef = db.collection("metadata").doc("rankings");
+        await statsRef.set({
+          leagueCounts: {
+            [oldLeague]: FieldValue.increment(-1),
+            [newLeague]: FieldValue.increment(1),
+          },
+        }, {merge: true});
+        console.log("submissionEvaluationEngine: updated league counts", {oldLeague, newLeague});
+      }
 
       console.log("submissionEvaluationEngine: finished successfully", {
         submissionId: snapshot.id,

@@ -15,7 +15,7 @@ object SubmissionFactory {
         themeId: String? = null,
         authorId: String = ""
     ): Submissions {
-        val wordCount = content.split("\\s+".toRegex()).size
+        val wordCount = if (content.isBlank()) 0 else content.trim().split("\\s+".toRegex()).size
         return Submissions(
             id = UUID.randomUUID().toString(),
             authorId = authorId,
