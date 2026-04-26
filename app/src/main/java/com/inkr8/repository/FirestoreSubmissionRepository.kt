@@ -57,7 +57,7 @@ class FirestoreSubmissionRepository() {
     ) {
         submissionsCollection.document(submissionId).delete()
             .addOnSuccessListener { onSuccess() }
-            .addOnFailureListener { onError(it) }
+            .addOnFailureListener { e -> onError(e) }
     }
 
     fun listenToAllSubmissions(

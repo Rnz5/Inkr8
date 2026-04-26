@@ -16,5 +16,6 @@ export * from "./users/userInitializer";
 export * from "./users/applyMeritAction";
 export * from "./users/meritReleaseController";
 export * from "./users/philosopherController";
+export * from "./users/systemTaxController";
 
 export * from "./tips/tipProcessor";

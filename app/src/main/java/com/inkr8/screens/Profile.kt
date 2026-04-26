@@ -1,5 +1,6 @@
 package com.inkr8.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,7 +14,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -25,6 +30,7 @@ import com.inkr8.R
 import com.inkr8.data.Users
 import com.inkr8.economy.EconomyConfig
 import com.inkr8.rating.League
+import com.inkr8.repository.FirestoreSubmissionRepository
 import com.inkr8.ui.theme.Inkr8Theme
 import com.inkr8.utils.TimeUtils.formatTime
 import java.text.NumberFormat
@@ -43,13 +49,15 @@ fun Profile(
     onDeleteAccount: () -> Unit,
     onChangeUsername: () -> Unit,
     onPurchaseReputation: (onSuccess: () -> Unit) -> Unit,
-    onExpandCap: () -> Unit
+    onExpandCap: () -> Unit,
+    onTip: (Long) -> Unit = {}
 ) {
     val league = League.fromRating(user.rating)
     val scrollState = rememberScrollState()
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showChangeUsernameDialog by remember { mutableStateOf(false) }
     var showExpandCapDialog by remember { mutableStateOf(false) }
+    var showTipDialog by remember { mutableStateOf(false) }
     var isReputationRevealed by remember { mutableStateOf(false) }
 
     val primaryGold = Color(0xFFFFD700)
@@ -112,12 +120,22 @@ fun Profile(
         )
     }
 
+    if (showTipDialog) {
+        TipAmountDialog(
+            recipientName = user.name,
+            onDismiss = { showTipDialog = false },
+            onSelectAmount = { amount ->
+                showTipDialog = false
+                onTip(amount)
+            }
+        )
+    }
+
     Column(
         modifier = Modifier.fillMaxSize().background(backgroundDark).verticalScroll(scrollState)
     ) {
         Box(modifier = Modifier.fillMaxWidth().height(180.dp)) {
             Box(modifier = Modifier.fillMaxSize().background(Color(0xFF0A0A0A)))
-            // banner here
             
             IconButton(
                 onClick = onNavigateBack,
@@ -186,9 +204,15 @@ fun Profile(
                     ) {
                         Column {
                             Text("Liquid Merit", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            val isDebt = user.merit < 0
+                            val meritText = if (isDebt) {
+                                "-${NumberFormat.getNumberInstance(Locale.US).format(java.lang.Math.abs(user.merit))}"
+                            } else {
+                                NumberFormat.getNumberInstance(Locale.US).format(user.merit)
+                            }
                             Text(
-                                text = NumberFormat.getNumberInstance(Locale.US).format(user.merit),
-                                color = Color.White,
+                                text = meritText,
+                                color = if (isDebt) Color.Red else Color.White,
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Black
                             )
@@ -207,10 +231,10 @@ fun Profile(
                     
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    val progress = (user.merit.toFloat() / user.meritCap.toFloat()).coerceIn(0f, 1f)
+                    val progress = (user.merit.coerceAtLeast(0).toFloat() / user.meritCap.toFloat()).coerceIn(0f, 1f)
                     Column {
                         LinearProgressIndicator(
-                            progress = progress,
+                            progress = { progress },
                             modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
                             color = primaryGold,
                             trackColor = Color.White.copy(alpha = 0.05f)
@@ -222,6 +246,22 @@ fun Profile(
                             Text("Capacity: ${NumberFormat.getNumberInstance(Locale.US).format(user.meritCap)}", color = Color.DarkGray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                             Text("${(progress * 100).toInt()}%", color = Color.DarkGray, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                         }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    val weeklyTax = (user.meritCap * 0.01).toLong()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("System Tax (Weekly)", color = Color.DarkGray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = "${NumberFormat.getNumberInstance(Locale.US).format(weeklyTax)} Merit",
+                            color = Color.Gray,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black
+                        )
                     }
 
                     if (user.meritHold > 0) {
@@ -257,14 +297,23 @@ fun Profile(
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = surfaceDark)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                StatItem("Rating", user.rating.toString(), if(pantheonPosition != null) "PANTHEON #$pantheonPosition" else league.displayName.uppercase())
-                Box(modifier = Modifier.width(1.dp).height(30.dp).background(Color.White.copy(alpha = 0.05f)))
-                StatItem("Reputation", if(isReputationRevealed || !isOwner) user.reputation.toString() else "LOCKED", "BEHAVIORAL")
+            if (isOwner) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    StatItem("Rating", user.rating.toString(), if(pantheonPosition != null) "PANTHEON #$pantheonPosition" else league.displayName.uppercase())
+                    Box(modifier = Modifier.width(1.dp).height(30.dp).background(Color.White.copy(alpha = 0.05f)))
+                    StatItem("Reputation", if(isReputationRevealed) user.reputation.toString() else "LOCKED", "BEHAVIORAL")
+                }
+            } else {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    StatItem("Rating", user.rating.toString(), if(pantheonPosition != null) "PANTHEON #$pantheonPosition" else league.displayName.uppercase())
+                }
             }
         }
 
@@ -279,30 +328,48 @@ fun Profile(
             BattleStatSmall(Modifier.weight(1f), "Best", "${user.bestScore}%")
         }
 
-        SectionTitle("System Archive")
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        SectionTitle("Performance Curve")
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).height(160.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = surfaceDark),
+            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.05f))
         ) {
-            ProfileActionButton(
-                title = "Archive Entries",
-                subtitle = "Review and refine your history",
-                onClick = onNavigateToSubmissions,
-                containerColor = Color.White,
-                contentColor = Color.Black
-            )
-            
-            ProfileActionButton(
-                title = "Eternal Repository",
-                subtitle = "Locked and protected manuscripts",
-                onClick = onNavigateToSavedSubmissions,
-                containerColor = surfaceDark,
-                contentColor = primaryGold,
-                showBorder = true
-            )
+            if (user.recentScores.size < 2) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("Calibrating metrics...", color = Color.DarkGray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            } else {
+                PerformanceChart(scores = user.recentScores, lineIndicatorColor = primaryGold)
+            }
         }
 
         if (isOwner) {
+            SectionTitle("System Archive")
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ProfileActionButton(
+                    title = "Archive Entries",
+                    subtitle = "Review and refine your history",
+                    onClick = onNavigateToSubmissions,
+                    containerColor = Color.White,
+                    contentColor = Color.Black
+                )
+                
+                ProfileActionButton(
+                    title = "Eternal Repository",
+                    subtitle = "Locked and protected manuscripts",
+                    onClick = onNavigateToSavedSubmissions,
+                    containerColor = surfaceDark,
+                    contentColor = primaryGold,
+                    showBorder = true
+                )
+            }
+
             SectionTitle("Behavioral Protocols")
             Box(modifier = Modifier.padding(horizontal = 20.dp)) {
                 if (isReputationRevealed) {
@@ -367,8 +434,87 @@ fun Profile(
                     }
                 }
             }
+        } else {
+            if (pantheonPosition != null) {
+                SectionTitle("System Interaction")
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = { showTipDialog = true },
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black)
+                    ) {
+                        Text("Tip ${user.name}", fontWeight = FontWeight.Black, fontSize = 14.sp)
+                    }
+                }
+            }
         }
+        
         Spacer(modifier = Modifier.height(48.dp))
+    }
+}
+
+@Composable
+fun PerformanceChart(scores: List<Double>, lineIndicatorColor: Color) {
+    Canvas(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 24.dp)) {
+        val width = size.width
+        val height = size.height
+        val maxScore = 100f
+        val minScore = 0f
+        
+        val spaceBetweenPoints = width / (scores.size - 1)
+        
+        val points = scores.mapIndexed { index, score ->
+            val x = index * spaceBetweenPoints
+            val y = height - ((score.toFloat() - minScore) / (maxScore - minScore)) * height
+            Offset(x, y)
+        }
+
+        val gridLines = 4
+        for (i in 0..gridLines) {
+            val y = height * i / gridLines
+            drawLine(
+                color = Color.White.copy(alpha = 0.03f),
+                start = Offset(0f, y),
+                end = Offset(width, y),
+                strokeWidth = 1.dp.toPx()
+            )
+        }
+
+        val path = Path()
+        points.forEachIndexed { index, point ->
+            if (index == 0) {
+                path.moveTo(point.x, point.y)
+            } else {
+                val prevPoint = points[index - 1]
+                path.cubicTo(
+                    prevPoint.x + spaceBetweenPoints / 2, prevPoint.y,
+                    point.x - spaceBetweenPoints / 2, point.y,
+                    point.x, point.y
+                )
+            }
+        }
+
+        drawPath(
+            path = path,
+            color = lineIndicatorColor,
+            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+        )
+        points.forEach { point ->
+            drawCircle(
+                color = lineIndicatorColor,
+                radius = 3.dp.toPx(),
+                center = point
+            )
+            drawCircle(
+                color = Color(0xFF1A1A1A),
+                radius = 1.5.dp.toPx(),
+                center = point
+            )
+        }
     }
 }
 
@@ -442,14 +588,56 @@ fun SectionTitle(title: String) {
     )
 }
 
+@Composable
+private fun TipAmountDialog(
+    recipientName: String,
+    onDismiss: () -> Unit,
+    onSelectAmount: (Long) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xFF1A1A1A),
+        title = { Text("Tip $recipientName", color = Color.White, fontWeight = FontWeight.Bold) },
+        text = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+            ) {
+                TipOptionButton(100L, onSelectAmount)
+                TipOptionButton(150L, onSelectAmount)
+                TipOptionButton(200L, onSelectAmount)
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = Color.Gray)
+            }
+        }
+    )
+}
+
+@Composable
+private fun TipOptionButton(amount: Long, onClick: (Long) -> Unit) {
+    Button(
+        onClick = { onClick(amount) },
+        colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color.Black),
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.width(80.dp),
+        contentPadding = PaddingValues(0.dp)
+    ) {
+        Text(amount.toString(), fontWeight = FontWeight.Black)
+    }
+}
+
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun ProfilePreview() {
     Inkr8Theme {
         Profile(
-            user = Users(name = "MintCake", merit = 45000, meritCap = 50000, meritHold = 1250, isPhilosopher = true),
+            user = Users(name = "MintCake", merit = 45000, meritCap = 50000, meritHold = 1250, isPhilosopher = true, reputation = 450),
             pantheonPosition = 4,
-            isOwner = true,
+            isOwner = false,
             onNavigateBack = {},
             onNavigateToSubmissions = {},
             onNavigateToSavedSubmissions = {},

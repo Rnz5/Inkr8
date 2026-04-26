@@ -5,7 +5,7 @@ import {calculateMerit} from "../utils/meritCalculator";
 import {calculateNewRating} from "../utils/ratingCalculator";
 import {onRankedCompleted} from "../utils/reputationManager";
 import {pruneOldSubmissions} from "./pruneOldSubmissions";
-import {getLeagueFromRating, LeagueName} from "../utils/leagueManager";
+import {getLeagueFromRating} from "../utils/leagueManager";
 
 export const submissionEvaluationEngine = onDocumentCreated(
   {
@@ -39,7 +39,6 @@ export const submissionEvaluationEngine = onDocumentCreated(
       });
 
       const apiKey = OPENAI_API_KEY.value();
-
       const playmode = data.playmode ?? "PRACTICE";
       const authorId = data.authorId;
 
@@ -64,6 +63,29 @@ export const submissionEvaluationEngine = onDocumentCreated(
         return;
       }
 
+      const content = data.content ?? "";
+      const qualityCheck = isContentLowQuality(content);
+
+      if (qualityCheck.isLowQuality) {
+        console.log("submissionEvaluationEngine: low quality content rejected", {
+          submissionId: snapshot.id,
+          reason: qualityCheck.reason,
+        });
+
+        await submissionRef.update({
+          status: "FAILED",
+          evaluationError: qualityCheck.reason ?? "Invalid content quality.",
+        });
+
+        if (playmode === "RANKED") {
+          await db.collection("users").doc(authorId).update({
+            currentlyInRanked: false,
+            rankedSessionStartedAt: FieldValue.delete(),
+          });
+        }
+        return;
+      }
+
       const requiredWords = Array.isArray(data.wordsUsed) ?
         data.wordsUsed
           .map((w: { word?: string } | string) =>
@@ -72,7 +94,7 @@ export const submissionEvaluationEngine = onDocumentCreated(
           .filter((word: string) => word.length > 0) :
         [];
 
-      console.log("submissionEvaluationEngine: calling evaluateWithR8", {
+      console.log("submissionEvaluationEngine: calling R8", {
         submissionId: snapshot.id,
         requiredWordsCount: requiredWords.length,
         wordCount: data.wordCount ?? 0,
@@ -80,7 +102,7 @@ export const submissionEvaluationEngine = onDocumentCreated(
 
       const result = await evaluateWithR8({
         apiKey,
-        content: data.content ?? "",
+        content: content,
         gamemode: data.gamemode ?? "STANDARD",
         requiredWords,
         themeName: data.themeName ?? null,
@@ -101,7 +123,7 @@ export const submissionEvaluationEngine = onDocumentCreated(
         playmode === "RANKED"
       );
 
-      const leagueTransition = await db.runTransaction(async (tx) => {
+      await db.runTransaction(async (tx) => {
         const userSnap = await tx.get(userRef);
         if (!userSnap.exists) {
           throw new Error("User not found for submission evaluation");
@@ -113,25 +135,19 @@ export const submissionEvaluationEngine = onDocumentCreated(
         const meritCap = Number(userData.meritCap ?? 50000);
         const currentBestScore = Number(userData.bestScore ?? 0);
 
-        let meritToLiquid = meritEarned;
-        let meritToHold = 0;
-
-        if (currentMerit + meritEarned > meritCap) {
-          meritToLiquid = Math.max(0, meritCap - currentMerit);
-          meritToHold = meritEarned - meritToLiquid;
-        }
-
         let userUpdates: Record<string, unknown> = {
-          merit: FieldValue.increment(meritToLiquid),
-          meritHold: FieldValue.increment(meritToHold),
+          merit: FieldValue.increment(meritToLiquid(currentMerit, meritEarned, meritCap)),
+          meritHold: FieldValue.increment(meritToHold(currentMerit, meritEarned, meritCap)),
           submissionsCount: FieldValue.increment(1),
           bestScore: Math.max(currentBestScore, result.finalScore),
         };
 
         let ratingChange = 0;
-        let transition: { oldLeague: LeagueName; newLeague: LeagueName } | null = null;
 
         if (playmode === "RANKED") {
+          const recentScores: number[] = Array.isArray(userData.recentScores) ? userData.recentScores : [];
+          recentScores.push(result.finalScore);
+
           const newRating = calculateNewRating(
             currentRating,
             result.finalScore
@@ -149,6 +165,7 @@ export const submissionEvaluationEngine = onDocumentCreated(
             reputation: newReputation,
             currentlyInRanked: false,
             rankedSessionStartedAt: FieldValue.delete(),
+            recentScores: recentScores.slice(-20),
           };
 
           if (authorId !== "R8") {
@@ -156,7 +173,13 @@ export const submissionEvaluationEngine = onDocumentCreated(
             const newLeague = getLeagueFromRating(newRating);
 
             if (oldLeague !== newLeague) {
-              transition = {oldLeague, newLeague};
+              const statsRef = db.collection("metadata").doc("rankings");
+              tx.set(statsRef, {
+                leagueCounts: {
+                  [oldLeague]: FieldValue.increment(-1),
+                  [newLeague]: FieldValue.increment(1),
+                },
+              }, {merge: true});
             }
           }
         }
@@ -167,7 +190,7 @@ export const submissionEvaluationEngine = onDocumentCreated(
             finalScore: result.finalScore,
             feedback: result.feedback,
             meritEarned,
-            meritToHold,
+            meritToHold: meritToHold(currentMerit, meritEarned, meritCap),
             ratingChange,
             resultStatus: "EVALUATED",
           },
@@ -176,40 +199,17 @@ export const submissionEvaluationEngine = onDocumentCreated(
         });
 
         tx.update(userRef, userUpdates);
-
-        return transition;
       });
 
-      if (leagueTransition) {
-        const {oldLeague, newLeague} = leagueTransition;
-        const statsRef = db.collection("metadata").doc("rankings");
-        await statsRef.set({
-          leagueCounts: {
-            [oldLeague]: FieldValue.increment(-1),
-            [newLeague]: FieldValue.increment(1),
-          },
-        }, {merge: true});
-        console.log("submissionEvaluationEngine: updated league counts", {oldLeague, newLeague});
-      }
-
-      console.log("submissionEvaluationEngine: finished successfully", {
-        submissionId: snapshot.id,
-        meritEarned,
+      pruneOldSubmissions(authorId).catch((err) => {
+        console.error("Non-critical background task (pruning) failed:", err);
       });
-
-      await pruneOldSubmissions(authorId);
     } catch (error) {
-      console.error("submissionEvaluationEngine failed", {
-        submissionId: snapshot.id,
-        error,
-      });
-
+      console.error("submissionEvaluationEngine failed", error);
       await submissionRef.update({
         status: "FAILED",
-        evaluationError:
-          error instanceof Error ? error.message : "Unknown evaluation failure",
+        evaluationError: error instanceof Error ? error.message : "Unknown failure",
       });
-
       const authorId = data.authorId;
       if (authorId && data.playmode === "RANKED") {
         try {
@@ -217,17 +217,57 @@ export const submissionEvaluationEngine = onDocumentCreated(
             currentlyInRanked: false,
             rankedSessionStartedAt: FieldValue.delete(),
           });
-          console.log("submissionEvaluationEngine: cleaned up ranked session after failure", {
-            authorId,
-            submissionId: snapshot.id,
-          });
+          console.log("submissionEvaluationEngine: cleaned up session after failure");
         } catch (cleanupError) {
-          console.error("submissionEvaluationEngine: failed to clean up ranked session", {
-            authorId,
-            cleanupError,
-          });
+          console.error("submissionEvaluationEngine: failed cleanup", cleanupError);
         }
       }
     }
   }
 );
+
+
+// quality check to filter out nonsense or highly repetitive content >:(
+function isContentLowQuality(content: string): { isLowQuality: boolean; reason?: string } {
+  const trimmed = content.trim();
+  if (trimmed.length < 50) return {isLowQuality: true, reason: "Content too short (min 50 chars)"};
+
+  const words = trimmed.split(/\s+/).filter((w) => w.length > 0);
+
+  if (words.some((w) => w.length > 35)) {
+    return {isLowQuality: true, reason: "Nonsense detected (excessive word length)"};
+  }
+
+  if (words.length >= 10) {
+    const uniqueWords = new Set(words.map((w) => w.toLowerCase()));
+    if (uniqueWords.size / words.length < 0.35) {
+      return {isLowQuality: true, reason: "Repetitive content detected"};
+    }
+  }
+
+  const letters = trimmed.replace(/[^a-zA-Z]/g, "");
+  if (letters.length > 30) {
+    const vowels = letters.match(/[aeiouAEIOU]/g) || [];
+    const vowelRatio = vowels.length / letters.length;
+    if (vowelRatio < 0.15 || vowelRatio > 0.8) {
+      return {isLowQuality: true, reason: "Unnatural character distribution (nonsense)"};
+    }
+
+    const uniqueLetters = new Set(letters.toLowerCase().split(""));
+    if (uniqueLetters.size < 8 && letters.length > 60) {
+      return {isLowQuality: true, reason: "Low character diversity (nonsense)"};
+    }
+  }
+
+  return {isLowQuality: false};
+}
+
+function meritToLiquid(current: number, earned: number, cap: number): number {
+  if (current + earned > cap) return Math.max(0, cap - current);
+  return earned;
+}
+
+function meritToHold(current: number, earned: number, cap: number): number {
+  const liquid = meritToLiquid(current, earned, cap);
+  return earned - liquid;
+}

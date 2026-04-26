@@ -26,5 +26,6 @@ data class Users(
     val tipsReceived: Long = 0,
     val isPhilosopher: Boolean = false,
     val philosopherSince: Long? = null,
-    val hasChosenUsername: Boolean = false
+    val hasChosenUsername: Boolean = false,
+    val recentScores: List<Double> = emptyList()
 )
