@@ -93,18 +93,18 @@ export const tournamentPhaseController = onSchedule("every 15 minutes", async ()
       updatedAt: FieldValue.serverTimestamp(),
     };
 
-    if (data.status === "ENROLLING" && now >= data.enrollmentEndAt) {
+    if (data.status === "ENROLLING" && now >= data.enrollmentDeadline) {
       const gameContent = await getRandomThemeAndTopic();
       const gameWords = await getRandomWords(10);
 
       updates.status = "ACTIVE";
-      updates.nextPhaseCheckAt = data.tournamentEndAt;
+      updates.nextPhaseCheckAt = data.submissionDeadline;
       updates.themeId = gameContent.themeId;
       updates.themeName = gameContent.themeName;
       updates.topicId = gameContent.topicId;
       updates.topicName = gameContent.topicName;
       updates.words = gameWords;
-    } else if (data.status === "ACTIVE" && now >= data.tournamentEndAt) {
+    } else if (data.status === "ACTIVE" && now >= data.submissionDeadline) {
       updates.status = "COMPLETED";
       updates.nextPhaseCheckAt = FieldValue.delete();
     }

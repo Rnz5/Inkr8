@@ -10,11 +10,23 @@ type EvaluatedSubmission = {
   submissionRef: FirebaseFirestore.DocumentReference;
 };
 
+function meritToLiquid(current: number, earned: number, cap: number): number {
+  if (current + earned > cap) return Math.max(0, cap - current);
+  return earned;
+}
+
+function meritToHold(current: number, earned: number, cap: number): number {
+  const liquid = meritToLiquid(current, earned, cap);
+  return earned - liquid;
+}
+
 export const tournamentEvaluationEngine = onDocumentUpdated(
   {
     document: "tournaments/{tournamentId}",
     region: "us-central1",
     secrets: [OPENAI_API_KEY],
+    timeoutSeconds: 540,
+    memory: "512MiB",
   },
   async (event) => {
     const before = event.data?.before.data();
@@ -69,45 +81,83 @@ export const tournamentEvaluationEngine = onDocumentUpdated(
 
       const rewardPercentages = calculateRewardPercentages(evaluated.length);
 
-      const batch = db.batch();
-
-      evaluated.forEach((entry, index) => {
-        const rank = index + 1;
-        const rewardPercent = rewardPercentages[index] ?? 0;
+      for (let i = 0; i < evaluated.length; i++) {
+        const entry = evaluated[i];
+        const rank = i + 1;
+        const rewardPercent = rewardPercentages[i] ?? 0;
         const reward = Math.floor(after.prizePool * rewardPercent);
 
-        batch.update(entry.submissionRef, {
-          evaluation: {
-            finalScore: entry.score,
-            feedback: entry.feedback,
-            meritEarned: reward,
-            rankLeaderboard: rank,
-          },
-          status: "EVALUATED",
-        });
+        if (reward <= 0) {
+          await entry.submissionRef.update({
+            evaluation: {
+              finalScore: entry.score,
+              feedback: entry.feedback,
+              meritEarned: 0,
+              rankLeaderboard: rank,
+            },
+            status: "EVALUATED",
+          });
+          continue;
+        }
 
         const userRef = db.collection("users").doc(entry.authorId);
-        batch.update(userRef, {
-          merit: FieldValue.increment(reward),
+
+        await db.runTransaction(async (tx) => {
+          const userSnap = await tx.get(userRef);
+          if (!userSnap.exists) return;
+
+          const userData = userSnap.data() || {};
+          const currentMerit = userData.merit ?? 0;
+          const meritCap = userData.meritCap ?? 50000;
+
+          const liquid = meritToLiquid(currentMerit, reward, meritCap);
+          const hold = meritToHold(currentMerit, reward, meritCap);
+
+          tx.update(userRef, {
+            merit: FieldValue.increment(liquid),
+            meritHold: FieldValue.increment(hold),
+          });
+
+          tx.update(entry.submissionRef, {
+            evaluation: {
+              finalScore: entry.score,
+              feedback: entry.feedback,
+              meritEarned: reward,
+              meritToHold: hold,
+              rankLeaderboard: rank,
+            },
+            status: "EVALUATED",
+          });
         });
-      });
+      }
 
       const totalRevenue = after.entranceFee * after.playersCount;
       const hostProfit = totalRevenue - after.prizePool - after.systemFee;
 
       if (hostProfit > 0) {
         const hostRef = db.collection("users").doc(after.creatorId);
-        batch.update(hostRef, {
-          merit: FieldValue.increment(hostProfit),
+        await db.runTransaction(async (tx) => {
+          const hostSnap = await tx.get(hostRef);
+          if (!hostSnap.exists) return;
+
+          const hostData = hostSnap.data() || {};
+          const currentMerit = hostData.merit ?? 0;
+          const meritCap = hostData.meritCap ?? 50000;
+
+          const liquid = meritToLiquid(currentMerit, hostProfit, meritCap);
+          const hold = meritToHold(currentMerit, hostProfit, meritCap);
+
+          tx.update(hostRef, {
+            merit: FieldValue.increment(liquid),
+            meritHold: FieldValue.increment(hold),
+          });
         });
       }
 
-      batch.update(tournamentRef, {
+      await tournamentRef.update({
         status: "COMPLETED",
         completedAt: Date.now(),
       });
-
-      await batch.commit();
     }
   }
 );

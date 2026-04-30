@@ -834,13 +834,15 @@ fun AppRoot(
                 },
                 onSubscribe = {
                     userRepository.enablePhilosopher(
+                        purchaseToken = "test_token",
+                        productId = "philosopher_sub",
                         onSuccess = {
                             userRepository.getUserById(currentUser.id) { updatedUser ->
                                 updatedUser?.let { currentUser = it }
                             }
                             Toast.makeText(
                                 context,
-                                "test philosoper",
+                                "Status Elevated",
                                 Toast.LENGTH_SHORT
                             ).show()
                             pagerInitialPage = 1

@@ -3,12 +3,12 @@ import {db, FieldValue} from "../firebase/admin";
 import {onRankedAbandoned} from "../utils/reputationManager";
 
 export const rankedSessionCleaner = onSchedule("every 15 minutes", async () => {
-  const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+  const sixtyMinutesAgo = Date.now() - (60 * 60 * 1000);
 
   try {
     const abandonedSessions = await db.collection("users")
       .where("currentlyInRanked", "==", true)
-      .where("rankedSessionStartedAt", "<=", fiveMinutesAgo)
+      .where("rankedSessionStartedAt", "<=", sixtyMinutesAgo)
       .get();
 
     if (abandonedSessions.empty) {

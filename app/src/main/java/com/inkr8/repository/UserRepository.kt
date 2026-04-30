@@ -374,12 +374,19 @@ class UserRepository(
     }
 
     fun enablePhilosopher(
+        purchaseToken: String,
+        productId: String,
         onSuccess: (Map<String, Any>?) -> Unit,
         onError: (Exception) -> Unit
     ) {
+        val data = hashMapOf(
+            "purchaseToken" to purchaseToken,
+            "productId" to productId
+        )
+
         functions
             .getHttpsCallable("activatePhilosopherStatus")
-            .call()
+            .call(data)
             .addOnSuccessListener { result ->
                 val resData = result.data as? Map<String, Any>
                 val updates = resData?.get("updatedFields") as? Map<String, Any>

@@ -111,9 +111,6 @@ class FirestoreTournamentRepository {
                 throw Exception("Already enrolled")
             }
 
-
-            //player enrollment procedure and deduction of entrance fee
-
             val userSnapshot = transaction.get(userRef)
             if (!userSnapshot.exists()) throw Exception("User not found")
 
@@ -141,8 +138,6 @@ class FirestoreTournamentRepository {
         val tournamentRef = tournamentsCollection.document(tournamentId)
         val tournamentSubmissionRef = tournamentRef.collection("submissions").document(userId)
         val enrollmentRef = tournamentRef.collection("enrollments").document(userId)
-
-        val globalSubmissionRef = db.collection("submissions").document(submission.id)
 
         db.runTransaction { transaction ->
             val tournamentSnapshot = transaction.get(tournamentRef)
@@ -178,7 +173,6 @@ class FirestoreTournamentRepository {
             }
 
             transaction.set(tournamentSubmissionRef, submission)
-            transaction.set(globalSubmissionRef, submission)
 
         }.addOnSuccessListener { onSuccess() }.addOnFailureListener { onError(it) }
     }

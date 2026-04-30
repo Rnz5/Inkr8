@@ -1,6 +1,16 @@
 
 import {onDocumentCreated} from "firebase-functions/v2/firestore";
-import {db} from "../firebase/admin";
+import {db, FieldValue} from "../firebase/admin";
+
+function meritToLiquid(current: number, earned: number, cap: number): number {
+  if (current + earned > cap) return Math.max(0, cap - current);
+  return earned;
+}
+
+function meritToHold(current: number, earned: number, cap: number): number {
+  const liquid = meritToLiquid(current, earned, cap);
+  return earned - liquid;
+}
 
 export const onTipCreated = onDocumentCreated(
   {
@@ -20,7 +30,6 @@ export const onTipCreated = onDocumentCreated(
       return;
     }
 
-    // Prevent tipping yourself
     if (tipperId === recipientId) {
       console.log("User attempted to tip themselves");
       return;
@@ -41,7 +50,6 @@ export const onTipCreated = onDocumentCreated(
     const tipperRef = db.collection("users").doc(tipperId);
     const recipientRef = db.collection("users").doc(recipientId);
 
-    // check if recipient submitted in this tournament
     const submissionQuery = await db
       .collection("tournaments")
       .doc(tournamentId)
@@ -77,19 +85,27 @@ export const onTipCreated = onDocumentCreated(
         if (!tipperDoc.exists) throw new Error("Tipper not found");
         if (!recipientDoc.exists) throw new Error("Recipient not found");
 
-        const tipperMerit = tipperDoc.data()?.merit ?? 0;
-        const recipientMerit = recipientDoc.data()?.merit ?? 0;
+        const tipperData = tipperDoc.data() || {};
+        const recipientData = recipientDoc.data() || {};
+
+        const tipperMerit = tipperData.merit ?? 0;
+        const recipientMerit = recipientData.merit ?? 0;
+        const meritCap = recipientData.meritCap ?? 50000;
 
         if (tipperMerit < amount) {
           throw new Error("Insufficient merit");
         }
+
+        const liquid = meritToLiquid(recipientMerit, amount, meritCap);
+        const hold = meritToHold(recipientMerit, amount, meritCap);
 
         tx.update(tipperRef, {
           merit: tipperMerit - amount,
         });
 
         tx.update(recipientRef, {
-          merit: recipientMerit + amount,
+          merit: FieldValue.increment(liquid),
+          meritHold: FieldValue.increment(hold),
         });
 
         tx.update(tipRef, {

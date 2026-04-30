@@ -1,10 +1,11 @@
 import {onSchedule} from "firebase-functions/v2/scheduler";
-import {db, FieldValue} from "../firebase/admin";
+import {db} from "../firebase/admin";
 import {adjustReputation} from "../utils/reputationManager";
 
 /**
  * the weekly tax system runs every Sunday at 00:00
  * it retires 1% of the user's max merit cap :-)
+ * ensures merit does not drop below zero and excludes R8
  */
 export const weeklyTaxProcessor = onSchedule(
   {
@@ -14,7 +15,7 @@ export const weeklyTaxProcessor = onSchedule(
     memory: "512MiB",
   },
   async () => {
-    const usersSnap = await db.collection("users").select("meritCap").get();
+    const usersSnap = await db.collection("users").select("merit", "meritCap").get();
 
     if (usersSnap.empty) {
       console.log("weeklyTaxProcessor: No users found.");
@@ -29,13 +30,20 @@ export const weeklyTaxProcessor = onSchedule(
     });
 
     usersSnap.docs.forEach((doc) => {
+      if (doc.id === "R8") return;
+
       const data = doc.data();
+      const currentMerit = data.merit ?? 0;
       const meritCap = data.meritCap ?? 50000;
       const taxAmount = Math.floor(meritCap * 0.01);
 
-      writer.update(doc.ref, {
-        merit: FieldValue.increment(-taxAmount),
-      });
+      const newMerit = Math.max(0, currentMerit - taxAmount);
+
+      if (newMerit !== currentMerit) {
+        writer.update(doc.ref, {
+          merit: newMerit,
+        });
+      }
     });
 
     await writer.close();

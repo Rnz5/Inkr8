@@ -26,8 +26,7 @@ export const tournamentRefundEngine = onDocumentUpdated(
         .collection("enrollments")
         .get();
 
-      enrollmentsSnapshot.docs.forEach((doc:
-          FirebaseFirestore.QueryDocumentSnapshot) => {
+      enrollmentsSnapshot.docs.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
         const userId = doc.id;
         const userRef = db.collection("users").doc(userId);
 

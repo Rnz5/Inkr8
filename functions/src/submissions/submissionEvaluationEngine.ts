@@ -12,6 +12,8 @@ export const submissionEvaluationEngine = onDocumentCreated(
     document: "submissions/{submissionId}",
     region: "us-central1",
     secrets: [OPENAI_API_KEY],
+    timeoutSeconds: 540,
+    memory: "512MiB",
   },
   async (event) => {
     const snapshot = event.data;
@@ -41,6 +43,13 @@ export const submissionEvaluationEngine = onDocumentCreated(
       const apiKey = OPENAI_API_KEY.value();
       const playmode = data.playmode ?? "PRACTICE";
       const authorId = data.authorId;
+
+      if (playmode === "TOURNAMENT") {
+        console.log("submissionEvaluationEngine: skipped, TOURNAMENT playmode handled by tournamentEvaluationEngine", {
+          submissionId: snapshot.id,
+        });
+        return;
+      }
 
       if (!authorId) {
         console.log("submissionEvaluationEngine: missing authorId", {
