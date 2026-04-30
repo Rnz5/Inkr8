@@ -1,15 +1,9 @@
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {db} from "../firebase/admin";
+import {FieldValue} from "firebase-admin/firestore";
 
-/**
- * returns a random words using randomIndex pattern
- *
- * @param {number} count
- * @return {Promise<string[]>}
- */
 async function getRandomWords(count: number): Promise<string[]> {
   const randomOffset = Math.random();
-
   const snapshot = await db.collection("words")
     .where("isActive", "==", true)
     .where("randomIndex", ">=", randomOffset)
@@ -35,20 +29,9 @@ async function getRandomWords(count: number): Promise<string[]> {
       if (word) results.push(word);
     });
   }
-
   return results.sort(() => Math.random() - 0.5);
 }
 
-/**
- * returns random theme and random topic from the theme
- *
- * @return {Promise<{
- *   themeId: string;
- *   themeName: string;
- *   topicId: string;
- *   topicName: string;
- * }>}
- */
 async function getRandomThemeAndTopic(): Promise<{
   themeId: string;
   themeName: string;
@@ -57,24 +40,17 @@ async function getRandomThemeAndTopic(): Promise<{
 }> {
   const themesSnapshot = await db.collection("themes").get();
   const themes = themesSnapshot.docs;
-
-  if (themes.length === 0) {
-    throw new Error("No themes found");
-  }
+  if (themes.length === 0) throw new Error("No themes found");
 
   const randomTheme = themes[Math.floor(Math.random() * themes.length)];
   const themeData = randomTheme.data();
 
-  const topicsSnapshot = await db
-    .collection("topics")
+  const topicsSnapshot = await db.collection("topics")
     .where("themeId", "==", randomTheme.id)
     .get();
 
   const topics = topicsSnapshot.docs;
-
-  if (topics.length === 0) {
-    throw new Error("No topics found for selected theme");
-  }
+  if (topics.length === 0) throw new Error("No topics found for selected theme");
 
   const randomTopic = topics[Math.floor(Math.random() * topics.length)];
   const topicData = randomTopic.data();
@@ -87,82 +63,54 @@ async function getRandomThemeAndTopic(): Promise<{
   };
 }
 
-export const tournamentPhaseController = onSchedule(
-  {
-    schedule: "every 2 minutes",
-    region: "us-central1",
-  },
-  async () => {
-    const countSnapshot = await db
-      .collection("tournaments")
-      .where("status", "in", ["ENROLLING", "ACTIVE"])
-      .count()
-      .get();
+interface TournamentUpdates {
+  updatedAt: FieldValue;
+  status?: string;
+  nextPhaseCheckAt?: number | FieldValue;
+  themeId?: string;
+  themeName?: string;
+  topicId?: string;
+  topicName?: string;
+  words?: string[];
+  [key: string]: string | number | FieldValue | string[] | undefined;
+}
 
-    if (countSnapshot.data().count === 0) {
-      return;
+export const tournamentPhaseController = onSchedule("every 15 minutes", async () => {
+  const now = Date.now();
+
+  const snapshot = await db.collection("tournaments")
+    .where("status", "in", ["ENROLLING", "ACTIVE"])
+    .where("nextPhaseCheckAt", "<=", now)
+    .orderBy("nextPhaseCheckAt", "asc")
+    .limit(20)
+    .get();
+
+  if (snapshot.empty) return;
+
+  for (const doc of snapshot.docs) {
+    const data = doc.data();
+    const updates: TournamentUpdates = {
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+
+    if (data.status === "ENROLLING" && now >= data.enrollmentEndAt) {
+      const gameContent = await getRandomThemeAndTopic();
+      const gameWords = await getRandomWords(10);
+
+      updates.status = "ACTIVE";
+      updates.nextPhaseCheckAt = data.tournamentEndAt;
+      updates.themeId = gameContent.themeId;
+      updates.themeName = gameContent.themeName;
+      updates.topicId = gameContent.topicId;
+      updates.topicName = gameContent.topicName;
+      updates.words = gameWords;
+    } else if (data.status === "ACTIVE" && now >= data.tournamentEndAt) {
+      updates.status = "COMPLETED";
+      updates.nextPhaseCheckAt = FieldValue.delete();
     }
 
-    const now = Date.now();
-
-    const snapshot = await db
-      .collection("tournaments")
-      .where("status", "in", ["ENROLLING", "ACTIVE"])
-      .get();
-
-    const batch = db.batch();
-
-    for (const doc of snapshot.docs) {
-      const tournament = doc.data();
-      const ref = doc.ref;
-
-      if (
-        tournament.status === "ENROLLING" &&
-        now > tournament.enrollmentDeadline
-      ) {
-        if (tournament.playersCount >= tournament.minPlayers) {
-          const gamemode = tournament.gamemode ?? "STANDARD";
-
-          if (gamemode === "ON_TOPIC") {
-            const prompt = await getRandomThemeAndTopic();
-            const words = await getRandomWords(2);
-
-            batch.update(ref, {
-              status: "ACTIVE",
-              requiredWords: words,
-              themeId: prompt.themeId,
-              themeName: prompt.themeName,
-              topicId: prompt.topicId,
-              topicName: prompt.topicName,
-            });
-          } else {
-            const words = await getRandomWords(4);
-
-            batch.update(ref, {
-              status: "ACTIVE",
-              requiredWords: words,
-              themeId: null,
-              themeName: null,
-              topicId: null,
-              topicName: null,
-            });
-          }
-        } else {
-          batch.update(ref, {
-            status: "CANCELLED",
-            cancelledAt: now,
-          });
-        }
-      }
-
-      if (
-        tournament.status === "ACTIVE" &&
-        now > tournament.submissionDeadline
-      ) {
-        batch.update(ref, {status: "EVALUATING"});
-      }
+    if (updates.status) {
+      await doc.ref.update(updates);
     }
-
-    await batch.commit();
   }
-);
+});

@@ -5,7 +5,6 @@ data class Evaluation(
     val finalScore: Double = 0.0,
     val meritEarned: Long = 0,
     val ratingChange: Long = 0,
-    val sarcasm: String = "",
     val feedback: String = "",
     val expandedFeedback: String? = null,
     val feedbackUnlocked: Boolean = false,

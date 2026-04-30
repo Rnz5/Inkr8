@@ -120,7 +120,7 @@ export const submissionEvaluationEngine = onDocumentCreated(
         result.finalScore,
         data.wordCount ?? 0,
         data.gamemode,
-        playmode === "RANKED"
+        playmode === "RANKED" || playmode === "TOURNAMENT"
       );
 
       await db.runTransaction(async (tx) => {
@@ -139,15 +139,21 @@ export const submissionEvaluationEngine = onDocumentCreated(
           merit: FieldValue.increment(meritToLiquid(currentMerit, meritEarned, meritCap)),
           meritHold: FieldValue.increment(meritToHold(currentMerit, meritEarned, meritCap)),
           submissionsCount: FieldValue.increment(1),
-          bestScore: Math.max(currentBestScore, result.finalScore),
         };
+
+        if (playmode === "RANKED" || playmode === "TOURNAMENT") {
+          userUpdates.bestScore = Math.max(currentBestScore, result.finalScore);
+        }
 
         let ratingChange = 0;
 
-        if (playmode === "RANKED") {
+        if (playmode === "RANKED" || playmode === "TOURNAMENT") {
           const recentScores: number[] = Array.isArray(userData.recentScores) ? userData.recentScores : [];
           recentScores.push(result.finalScore);
+          userUpdates.recentScores = recentScores.slice(-20);
+        }
 
+        if (playmode === "RANKED") {
           const newRating = calculateNewRating(
             currentRating,
             result.finalScore
@@ -165,7 +171,6 @@ export const submissionEvaluationEngine = onDocumentCreated(
             reputation: newReputation,
             currentlyInRanked: false,
             rankedSessionStartedAt: FieldValue.delete(),
-            recentScores: recentScores.slice(-20),
           };
 
           if (authorId !== "R8") {

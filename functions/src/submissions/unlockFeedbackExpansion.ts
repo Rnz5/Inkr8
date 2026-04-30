@@ -21,6 +21,8 @@ export const unlockFeedbackExpansion = onCall(
     const submissionRef = db.collection("submissions").doc(submissionId);
     const userRef = db.collection("users").doc(uid);
 
+    let appliedCost = 0;
+
     await db.runTransaction(async (tx) => {
       const submissionSnap = await tx.get(submissionRef);
       const userSnap = await tx.get(userRef);
@@ -68,16 +70,16 @@ export const unlockFeedbackExpansion = onCall(
         );
       }
 
-      const cost = isPhilosopher ? 0 : EXPAND_FEEDBACK_COST;
+      appliedCost = isPhilosopher ? 0 : EXPAND_FEEDBACK_COST;
 
-      if (cost > 0) {
+      if (appliedCost > 0) {
         const currentMerit = user?.merit ?? 0;
-        if (currentMerit < cost) {
+        if (currentMerit < appliedCost) {
           throw new HttpsError("failed-precondition", "Not enough Merit.");
         }
 
         tx.update(userRef, {
-          merit: currentMerit - cost,
+          merit: currentMerit - appliedCost,
         });
       }
 
@@ -89,6 +91,7 @@ export const unlockFeedbackExpansion = onCall(
     return {
       success: true,
       message: "Feedback expansion unlocked.",
+      cost: appliedCost,
     };
   }
 );

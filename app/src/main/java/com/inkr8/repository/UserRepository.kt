@@ -15,9 +15,12 @@ class UserRepository(
     private val usersCollection = firestore.collection("users")
 
     companion object {
+        @Volatile
         private var cachedTop100: List<Users>? = null
+        @Volatile
         private var lastFetchTime: Long = 0
         private const val CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+        private val cacheLock = Any()
     }
 
     fun getAllUsers(onResult: (List<Users>) -> Unit) {
@@ -311,16 +314,21 @@ class UserRepository(
         onResult: (List<Users>) -> Unit
     ) {
         val currentTime = System.currentTimeMillis()
-        if (cachedTop100 != null && (currentTime - lastFetchTime) < CACHE_DURATION) {
-            onResult(cachedTop100!!)
-            return
+        
+        synchronized(cacheLock) {
+            if (cachedTop100 != null && (currentTime - lastFetchTime) < CACHE_DURATION) {
+                onResult(cachedTop100!!)
+                return
+            }
         }
 
         firestore.collection("users").orderBy("rating", Query.Direction.DESCENDING).limit(100).get().addOnSuccessListener {
             snapshot ->
                 val users = snapshot.documents.mapNotNull { it.toObject(Users::class.java) }
-                cachedTop100 = users
-                lastFetchTime = currentTime
+                synchronized(cacheLock) {
+                    cachedTop100 = users
+                    lastFetchTime = System.currentTimeMillis()
+                }
                 onResult(users)
             }
     }

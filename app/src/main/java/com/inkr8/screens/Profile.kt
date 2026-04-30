@@ -325,12 +325,34 @@ fun Profile(
             BattleStatSmall(Modifier.weight(1f), "Submissions", user.submissionsCount.toString())
             BattleStatSmall(Modifier.weight(1f), "Tournaments", user.tournamentsPlayed.toString())
             BattleStatSmall(Modifier.weight(1f), "Victories", user.tournamentsWon.toString())
-            BattleStatSmall(Modifier.weight(1f), "Best", "${user.bestScore}%")
+            BattleStatSmall(Modifier.weight(1f), "Best Score", "${user.bestScore}%")
         }
+        
+        Text(
+            text = "Only counts Ranked and Tournaments scores",
+            color = Color.DarkGray,
+            fontSize = 7.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(start = 24.dp, top = 4.dp)
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
         
-        SectionTitle("Performance Curve")
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(end = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            SectionTitle("Competitive Curve")
+            Text(
+                text = "* PRACTICE SCORES ARE NOT TRACKED",
+                color = Color.DarkGray,
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(bottom = 14.dp)
+            )
+        }
+        
         Card(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).height(160.dp),
             shape = RoundedCornerShape(16.dp),
@@ -339,7 +361,7 @@ fun Profile(
         ) {
             if (user.recentScores.size < 2) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Calibrating metrics...", color = Color.DarkGray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("Awaiting competitive data...", color = Color.DarkGray, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             } else {
                 PerformanceChart(scores = user.recentScores, lineIndicatorColor = primaryGold)
@@ -362,7 +384,7 @@ fun Profile(
                 
                 ProfileActionButton(
                     title = "Eternal Repository",
-                    subtitle = "Locked and protected manuscripts",
+                    subtitle = "Locked and protected entries",
                     onClick = onNavigateToSavedSubmissions,
                     containerColor = surfaceDark,
                     contentColor = primaryGold,
@@ -465,7 +487,7 @@ fun PerformanceChart(scores: List<Double>, lineIndicatorColor: Color) {
         val maxScore = 100f
         val minScore = 0f
         
-        val spaceBetweenPoints = width / (scores.size - 1)
+        val spaceBetweenPoints = if (scores.size > 1) width / (scores.size - 1) else 0f
         
         val points = scores.mapIndexed { index, score ->
             val x = index * spaceBetweenPoints
@@ -484,36 +506,38 @@ fun PerformanceChart(scores: List<Double>, lineIndicatorColor: Color) {
             )
         }
 
-        val path = Path()
-        points.forEachIndexed { index, point ->
-            if (index == 0) {
-                path.moveTo(point.x, point.y)
-            } else {
-                val prevPoint = points[index - 1]
-                path.cubicTo(
-                    prevPoint.x + spaceBetweenPoints / 2, prevPoint.y,
-                    point.x - spaceBetweenPoints / 2, point.y,
-                    point.x, point.y
+        if (points.isNotEmpty()) {
+            val path = Path()
+            points.forEachIndexed { index, point ->
+                if (index == 0) {
+                    path.moveTo(point.x, point.y)
+                } else {
+                    val prevPoint = points[index - 1]
+                    path.cubicTo(
+                        prevPoint.x + spaceBetweenPoints / 2, prevPoint.y,
+                        point.x - spaceBetweenPoints / 2, point.y,
+                        point.x, point.y
+                    )
+                }
+            }
+
+            drawPath(
+                path = path,
+                color = lineIndicatorColor,
+                style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+            )
+            points.forEach { point ->
+                drawCircle(
+                    color = lineIndicatorColor,
+                    radius = 3.dp.toPx(),
+                    center = point
+                )
+                drawCircle(
+                    color = Color(0xFF1A1A1A),
+                    radius = 1.5.dp.toPx(),
+                    center = point
                 )
             }
-        }
-
-        drawPath(
-            path = path,
-            color = lineIndicatorColor,
-            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
-        )
-        points.forEach { point ->
-            drawCircle(
-                color = lineIndicatorColor,
-                radius = 3.dp.toPx(),
-                center = point
-            )
-            drawCircle(
-                color = Color(0xFF1A1A1A),
-                radius = 1.5.dp.toPx(),
-                center = point
-            )
         }
     }
 }

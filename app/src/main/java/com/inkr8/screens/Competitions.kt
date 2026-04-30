@@ -48,6 +48,7 @@ fun Competitions(
     
     var tournaments by remember { mutableStateOf<List<Tournament>>(emptyList()) }
     var rankedGamemode by remember { mutableStateOf<Gamemode>(StandardWriting) }
+    var isGamemodeLoaded by remember { mutableStateOf(false) }
 
     val primaryGold = Color(0xFFFFD700)
     val backgroundDark = Color(0xFF0F0F0F)
@@ -61,23 +62,26 @@ fun Competitions(
         onDispose { registration.remove() }
     }
 
-    LaunchedEffect(user.rating) {
-        rankedGamemode = when (league) {
-            League.SCRIBE, League.STYLIST -> StandardWriting
-            else -> {
-                if ((0..1).random() == 0) {
-                    StandardWriting
-                } else {
-                    val randomTheme = themeRepository.getRandomTheme()
-                    val randomTopic = randomTheme?.let { topicRepository.getRandomTopicFromTheme(it.id) }
-                    
-                    if (randomTheme != null && randomTopic != null) {
-                        OnTopicWriting(randomTheme, randomTopic)
-                    } else {
+    LaunchedEffect(Unit) {
+        if (!isGamemodeLoaded) {
+            rankedGamemode = when (league) {
+                League.SCRIBE, League.STYLIST -> StandardWriting
+                else -> {
+                    if ((0..1).random() == 0) {
                         StandardWriting
+                    } else {
+                        val randomTheme = themeRepository.getRandomTheme()
+                        val randomTopic = randomTheme?.let { topicRepository.getRandomTopicFromTheme(it.id) }
+                        
+                        if (randomTheme != null && randomTopic != null) {
+                            OnTopicWriting(randomTheme, randomTopic)
+                        } else {
+                            StandardWriting
+                        }
                     }
                 }
             }
+            isGamemodeLoaded = true
         }
     }
 
@@ -127,7 +131,7 @@ fun Competitions(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Box(
-                                        modifier = Modifier.size(24.dp).border(1.dp, Color.Gray, CircleShape).clickable { /* one day here will go the info screen lol */ },
+                                        modifier = Modifier.size(24.dp).border(1.dp, Color.Gray, CircleShape).clickable { /* info screen */ },
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Text("i", color = Color.Gray, fontSize = 12.sp, fontWeight = FontWeight.Bold)

@@ -1,14 +1,17 @@
 package com.inkr8
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.activity.compose.LocalActivity
+import androidx.compose.foundation.background
 import com.inkr8.data.*
 import com.inkr8.repository.*
 import com.inkr8.screens.*
@@ -61,25 +64,7 @@ fun AppRoot(
         }
     }
 
-    LaunchedEffect(currentUser.id, currentUser.rating, currentUser.currentlyInRanked) {
-        if (currentUser.currentlyInRanked) {
-            val sessionStartTime = currentUser.rankedSessionStartedAt ?: 0L
-            val sessionAge = System.currentTimeMillis() - sessionStartTime
-
-            if (sessionAge > 120_000L) {
-                val newRep = ReputationManager.onRankedAbandoned(currentUser.reputation)
-
-                userRepository.updateReputation(currentUser.id, newRep)
-                userRepository.finishRankedSession(currentUser.id)
-
-                userRepository.getUserById(currentUser.id) { updatedUser ->
-                    updatedUser?.let { currentUser = it }
-                }
-                
-                Toast.makeText(context, "Ranked session abandoned. Reputation decreased.", Toast.LENGTH_SHORT).show()
-            }
-        }
-
+    LaunchedEffect(currentUser.id, currentUser.rating) {
         if (currentUser.rating >= PantheonManager.MIN_RATING) {
             userRepository.getTop100Users { top100 ->
                 val (isPantheon, position) =
@@ -366,7 +351,6 @@ fun AppRoot(
                             if (submissionAdCounter % 2 == 0) {
                                 activity?.let {
                                     AdManager.showAd(it)
-                                    AdManager.loadAd(it)
                                 }
                                 pagerInitialPage = 1
                                 currentScreen = Screen.home
@@ -386,7 +370,6 @@ fun AppRoot(
                             if (submissionAdCounter % 2 == 0) {
                                 activity?.let {
                                     AdManager.showAd(it)
-                                    AdManager.loadAd(it)
                                 }
                                 pagerInitialPage = 0
                                 currentScreen = Screen.home
@@ -398,10 +381,22 @@ fun AppRoot(
                 )
             } else {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().background(Color(0xFF0F0F0F)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("No result available.")
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("No result available.", color = Color.White, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { 
+                                pagerInitialPage = 1
+                                currentScreen = Screen.home 
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD700), contentColor = Color.Black)
+                        ) {
+                            Text("Return Home", fontWeight = FontWeight.Black)
+                        }
+                    }
                 }
             }
         }
@@ -657,7 +652,6 @@ fun AppRoot(
                 if (submissionAdCounter % 2 == 0) {
                     activity?.let {
                         AdManager.showAd(it)
-                        AdManager.loadAd(it)
                     }
                     beforeNavigate?.invoke()
                     currentScreen = nextScreen

@@ -80,6 +80,19 @@ class FirestoreSubmissionRepository() {
             }
     }
 
+    fun getSubmissionContent(
+        submissionId: String,
+        onSuccess: (String) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        submissionsCollection.document(submissionId).get()
+            .addOnSuccessListener { snapshot ->
+                val content = snapshot.getString("content") ?: ""
+                onSuccess(content)
+            }
+            .addOnFailureListener { onError(it) }
+    }
+
     fun getAllSubmissions(
         authorId: String,
         onSuccess: (List<Submissions>) -> Unit,

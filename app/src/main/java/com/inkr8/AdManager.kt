@@ -34,5 +34,6 @@ object AdManager {
     fun showAd(activity: Activity) {
         interstitialAd?.show(activity)
         interstitialAd = null
+        loadAd(activity)
     }
 }

@@ -1,5 +1,5 @@
 package com.inkr8.utils
 
 object SystemConfig {
-    const val APP_VERSION = "alpha v0.5.1"
+    const val APP_VERSION = "alpha v0.5.2"
 }

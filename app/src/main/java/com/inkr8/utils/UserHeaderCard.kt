@@ -130,7 +130,7 @@ fun UserHeaderCard(
             
             Column {
                 LinearProgressIndicator(
-                    progress = progress,
+                    progress = { progress },
                     modifier = Modifier.fillMaxWidth().height(4.dp).clip(CircleShape),
                     color = if (isNearCap) Color.Red else primaryGold,
                     trackColor = Color.White.copy(alpha = 0.05f)

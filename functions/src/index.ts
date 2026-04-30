@@ -17,5 +17,6 @@ export * from "./users/applyMeritAction";
 export * from "./users/meritReleaseController";
 export * from "./users/philosopherController";
 export * from "./users/systemTaxController";
+export * from "./users/rankedSessionCleaner";
 
 export * from "./tips/tipProcessor";

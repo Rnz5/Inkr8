@@ -56,6 +56,7 @@ import com.inkr8.data.TournamentRequirements
 import com.inkr8.data.TournamentStatus
 import com.inkr8.data.Users
 import com.inkr8.ui.theme.Inkr8Theme
+import com.inkr8.utils.FormatUtils
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -246,7 +247,7 @@ private fun TournamentResultRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = formatPlace(placement),
+                text = FormatUtils.formatPlace(placement),
                 modifier = Modifier.width(34.dp),
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodyMedium
@@ -581,15 +582,6 @@ private fun TipAmountDialog(
     )
 }
 
-private fun formatPlace(place: Int): String {
-    return when (place) {
-        1 -> "1st"
-        2 -> "2nd"
-        3 -> "3rd"
-        else -> "${place}th"
-    }
-}
-
 private val previewSubmission1 = Submissions(
     id = "sub1",
     authorId = "user1",
@@ -653,4 +645,3 @@ fun TournamentResultsScreenPreview() {
         )
     }
 }
-

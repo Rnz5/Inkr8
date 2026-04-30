@@ -10,18 +10,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -38,7 +34,6 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.media3.exoplayer.scheduler.Requirements
 import com.inkr8.R
 import com.inkr8.data.Evaluation
 import com.inkr8.data.Submissions
@@ -48,6 +43,7 @@ import com.inkr8.data.TournamentRequirements
 import com.inkr8.data.TournamentStatus
 import com.inkr8.data.Users
 import com.inkr8.economy.TournamentRewardCalculator
+import com.inkr8.utils.FormatUtils
 import com.inkr8.utils.TimeUtils
 import java.text.NumberFormat
 import java.util.Locale
@@ -141,7 +137,7 @@ fun TournamentDetails(
                             val score = entry.submission.evaluation?.finalScore ?: 0.0
 
                             RewardDistributionRow(
-                                place = formatPlace(index + 1),
+                                place = FormatUtils.formatPlace(index + 1),
                                 merit = formatter.format(merit),
                                 percent = String.format(Locale.US, "%.2f", score),
                                 participant = entry.user?.name?.ifBlank { null } ?: entry.submission.authorId,
@@ -156,7 +152,7 @@ fun TournamentDetails(
                             val merit = (tournament.prizePool * percent).toLong()
 
                             RewardDistributionRow(
-                                place = formatPlace(index + 1),
+                                place = FormatUtils.formatPlace(index + 1),
                                 merit = formatter.format(merit),
                                 percent = "${String.format(Locale.US, "%.2f", percent * 100)}%",
                                 participant = "TBD",
@@ -465,15 +461,6 @@ private fun TournamentRequirementsSection(
                 )
             }
         }
-    }
-}
-
-private fun formatPlace(place: Int): String {
-    return when (place) {
-        1 -> "1st"
-        2 -> "2nd"
-        3 -> "3rd"
-        else -> "${place}th"
     }
 }
 
