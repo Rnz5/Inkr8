@@ -11,33 +11,36 @@ export const meritReleaseController = onSchedule("every 3 hours", async () => {
     return;
   }
 
-  const batch = db.batch();
-  let processedCount = 0;
+  for (const doc of usersWithHold.docs) {
+    await db.runTransaction(async (tx) => {
+      const userSnap = await tx.get(doc.ref);
+      if (!userSnap.exists) return;
 
-  usersWithHold.docs.forEach((doc) => {
-    const data = doc.data();
-    const merit = data.merit ?? 0;
-    const meritHold = data.meritHold ?? 0;
-    const meritCap = data.meritCap ?? 50000;
+      const data = userSnap.data() || {};
+      const merit = data.merit ?? 0;
+      const meritHold = data.meritHold ?? 0;
+      const meritCap = data.meritCap ?? 50000;
 
-    if (merit < meritCap) {
-      const remainingCapSpace = meritCap - merit;
-      const releaseAmount = Math.min(300, meritHold, remainingCapSpace);
+      if (merit < meritCap) {
+        const remainingCapSpace = meritCap - merit;
+        const releaseAmount = Math.min(300, meritHold, remainingCapSpace);
 
-      if (releaseAmount > 0) {
-        batch.update(doc.ref, {
-          merit: FieldValue.increment(releaseAmount),
-          meritHold: FieldValue.increment(-releaseAmount),
-        });
-        processedCount++;
+        if (releaseAmount > 0) {
+          const newMerit = merit + releaseAmount;
+          tx.update(doc.ref, {
+            merit: newMerit,
+            meritHold: FieldValue.increment(-releaseAmount),
+          });
+
+          const txRef = doc.ref.collection("meritTransactions").doc();
+          tx.set(txRef, {
+            amount: releaseAmount,
+            reason: "MERIT_RELEASE",
+            timestamp: Date.now(),
+            balanceAfter: newMerit,
+          });
+        }
       }
-    }
-  });
-
-  if (processedCount > 0) {
-    await batch.commit();
-    console.log(`meritReleaseController: Released merit for ${processedCount} users.`);
-  } else {
-    console.log("meritReleaseController: No merit released (all users at cap).");
+    });
   }
 });

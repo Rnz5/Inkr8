@@ -61,13 +61,16 @@ export const enrollInTournament = onCall(
 
         const user = userSnap.data();
         const currentMerit = user?.merit ?? 0;
+        const entranceFee = tournament.entranceFee;
 
-        if (currentMerit < tournament.entranceFee) {
+        if (currentMerit < entranceFee) {
           throw new HttpsError("failed-precondition", "Not enough Merit.");
         }
 
+        const newBalance = currentMerit - entranceFee;
+
         tx.update(userRef, {
-          merit: currentMerit - tournament.entranceFee,
+          merit: newBalance,
         });
 
         tx.set(enrollmentRef, {
@@ -77,6 +80,14 @@ export const enrollInTournament = onCall(
 
         tx.update(tournamentRef, {
           playersCount: FieldValue.increment(1),
+        });
+
+        const txRef = userRef.collection("meritTransactions").doc();
+        tx.set(txRef, {
+          amount: -entranceFee,
+          reason: "ENTER_TOURNAMENT",
+          timestamp: Date.now(),
+          balanceAfter: newBalance,
         });
       });
 

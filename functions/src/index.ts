@@ -20,3 +20,5 @@ export * from "./users/systemTaxController";
 export * from "./users/rankedSessionCleaner";
 
 export * from "./tips/tipProcessor";
+
+export * from "./stats/dailyStatsSnapshot";

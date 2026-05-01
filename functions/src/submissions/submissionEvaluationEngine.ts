@@ -144,9 +144,13 @@ export const submissionEvaluationEngine = onDocumentCreated(
         const meritCap = Number(userData.meritCap ?? 50000);
         const currentBestScore = Number(userData.bestScore ?? 0);
 
+        const liquidReward = meritToLiquid(currentMerit, meritEarned, meritCap);
+        const holdReward = meritToHold(currentMerit, meritEarned, meritCap);
+        const newMerit = currentMerit + liquidReward;
+
         let userUpdates: Record<string, unknown> = {
-          merit: FieldValue.increment(meritToLiquid(currentMerit, meritEarned, meritCap)),
-          meritHold: FieldValue.increment(meritToHold(currentMerit, meritEarned, meritCap)),
+          merit: newMerit,
+          meritHold: FieldValue.increment(holdReward),
           submissionsCount: FieldValue.increment(1),
         };
 
@@ -204,7 +208,7 @@ export const submissionEvaluationEngine = onDocumentCreated(
             finalScore: result.finalScore,
             feedback: result.feedback,
             meritEarned,
-            meritToHold: meritToHold(currentMerit, meritEarned, meritCap),
+            meritToHold: holdReward,
             ratingChange,
             resultStatus: "EVALUATED",
           },
@@ -213,6 +217,16 @@ export const submissionEvaluationEngine = onDocumentCreated(
         });
 
         tx.update(userRef, userUpdates);
+
+        if (liquidReward !== 0) {
+          const txRef = userRef.collection("meritTransactions").doc();
+          tx.set(txRef, {
+            amount: liquidReward,
+            reason: playmode === "RANKED" ? "RANKED_REWARD" : "PRACTICE_REWARD",
+            timestamp: Date.now(),
+            balanceAfter: newMerit,
+          });
+        }
       });
 
       pruneOldSubmissions(authorId).catch((err) => {

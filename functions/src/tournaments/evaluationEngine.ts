@@ -112,9 +112,10 @@ export const tournamentEvaluationEngine = onDocumentUpdated(
 
           const liquid = meritToLiquid(currentMerit, reward, meritCap);
           const hold = meritToHold(currentMerit, reward, meritCap);
+          const newMerit = currentMerit + liquid;
 
           tx.update(userRef, {
-            merit: FieldValue.increment(liquid),
+            merit: newMerit,
             meritHold: FieldValue.increment(hold),
           });
 
@@ -128,6 +129,16 @@ export const tournamentEvaluationEngine = onDocumentUpdated(
             },
             status: "EVALUATED",
           });
+
+          if (liquid !== 0) {
+            const txRef = userRef.collection("meritTransactions").doc();
+            tx.set(txRef, {
+              amount: liquid,
+              reason: "TOURNAMENT_REWARD",
+              timestamp: Date.now(),
+              balanceAfter: newMerit,
+            });
+          }
         });
       }
 
@@ -146,11 +157,22 @@ export const tournamentEvaluationEngine = onDocumentUpdated(
 
           const liquid = meritToLiquid(currentMerit, hostProfit, meritCap);
           const hold = meritToHold(currentMerit, hostProfit, meritCap);
+          const newMerit = currentMerit + liquid;
 
           tx.update(hostRef, {
-            merit: FieldValue.increment(liquid),
+            merit: newMerit,
             meritHold: FieldValue.increment(hold),
           });
+
+          if (liquid !== 0) {
+            const txRef = hostRef.collection("meritTransactions").doc();
+            tx.set(txRef, {
+              amount: liquid,
+              reason: "TOURNAMENT_REWARD",
+              timestamp: Date.now(),
+              balanceAfter: newMerit,
+            });
+          }
         });
       }
 

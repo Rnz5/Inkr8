@@ -72,7 +72,7 @@ export const onTipCreated = onDocumentCreated(
       .limit(1)
       .get();
 
-    if (!duplicateTipQuery.empty) {
+    if (!duplicateTipQuery.empty && duplicateTipQuery.docs[0].id !== event.data.id) {
       console.log("Duplicate tip attempt");
       return;
     }
@@ -99,18 +99,39 @@ export const onTipCreated = onDocumentCreated(
         const liquid = meritToLiquid(recipientMerit, amount, meritCap);
         const hold = meritToHold(recipientMerit, amount, meritCap);
 
+        const newTipperBalance = tipperMerit - amount;
+        const newRecipientBalance = recipientMerit + liquid;
+
         tx.update(tipperRef, {
-          merit: tipperMerit - amount,
+          merit: newTipperBalance,
         });
 
         tx.update(recipientRef, {
-          merit: FieldValue.increment(liquid),
+          merit: newRecipientBalance,
           meritHold: FieldValue.increment(hold),
         });
 
         tx.update(tipRef, {
           processed: true,
         });
+
+        const tipperTxRef = tipperRef.collection("meritTransactions").doc();
+        tx.set(tipperTxRef, {
+          amount: -amount,
+          reason: "TIP_SENT",
+          timestamp: Date.now(),
+          balanceAfter: newTipperBalance,
+        });
+
+        if (liquid !== 0) {
+          const recipientTxRef = recipientRef.collection("meritTransactions").doc();
+          tx.set(recipientTxRef, {
+            amount: liquid,
+            reason: "TIP_RECEIVED",
+            timestamp: Date.now(),
+            balanceAfter: newRecipientBalance,
+          });
+        }
       });
 
       console.log("Tip processed successfully");

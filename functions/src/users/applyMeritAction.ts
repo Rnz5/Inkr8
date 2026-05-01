@@ -63,6 +63,9 @@ export const applyMeritAction = onCall(
       let rankedLossStreak = user?.rankedLossStreak ?? 0;
       let reputation = user?.reputation ?? 0;
 
+      let meritDelta = 0;
+      let reason = "";
+
       switch (action) {
       case "EXPAND_MERIT_CAP": {
         const cost = Math.floor(meritCap * 0.25);
@@ -72,6 +75,8 @@ export const applyMeritAction = onCall(
           throw new HttpsError("failed-precondition", "Insufficient Merit for expansion.");
         }
 
+        meritDelta = -cost;
+        reason = "EXPAND_MERIT_CAP";
         updatedFields = {
           merit: currentMerit - cost,
           meritCap: meritCap + expansionAmount,
@@ -87,6 +92,8 @@ export const applyMeritAction = onCall(
           throw new HttpsError("failed-precondition", "Not enough Merit.");
         }
 
+        meritDelta = -cost;
+        reason = "PURCHASE_EXAMPLE_SENTENCE";
         updatedFields = {
           merit: currentMerit - cost,
         };
@@ -101,6 +108,8 @@ export const applyMeritAction = onCall(
           throw new HttpsError("failed-precondition", "Not enough Merit.");
         }
 
+        meritDelta = -cost;
+        reason = "PURCHASE_REPUTATION_VIEW";
         updatedFields = {
           merit: currentMerit - cost,
         };
@@ -143,6 +152,8 @@ export const applyMeritAction = onCall(
           throw new HttpsError("already-exists", "Submission is already saved.");
         }
 
+        meritDelta = -cost;
+        reason = "SAVE_SUBMISSION";
         updatedFields = {
           merit: currentMerit - cost,
         };
@@ -172,6 +183,8 @@ export const applyMeritAction = onCall(
         }
 
         const rankedSessionStartedAt = Date.now();
+        meritDelta = -cost;
+        reason = "ENTER_RANKED";
         updatedFields = {
           merit: currentMerit - cost,
           currentlyInRanked: true,
@@ -248,6 +261,8 @@ export const applyMeritAction = onCall(
           createdAt: Date.now(),
         });
 
+        meritDelta = -cost;
+        reason = "CHANGE_USERNAME";
         updatedFields = {
           name: rawNewUsername,
           merit: currentMerit - cost,
@@ -266,6 +281,16 @@ export const applyMeritAction = onCall(
 
       default:
         throw new HttpsError("invalid-argument", "Unsupported action.");
+      }
+
+      if (meritDelta !== 0) {
+        const txRef = userRef.collection("meritTransactions").doc();
+        tx.set(txRef, {
+          amount: meritDelta,
+          reason: reason,
+          timestamp: Date.now(),
+          balanceAfter: currentMerit + meritDelta,
+        });
       }
     });
 

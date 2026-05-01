@@ -1,5 +1,5 @@
 import {onDocumentUpdated} from "firebase-functions/v2/firestore";
-import {db, FieldValue} from "../firebase/admin";
+import {db} from "../firebase/admin";
 
 export const tournamentRefundEngine = onDocumentUpdated(
   {
@@ -13,41 +13,64 @@ export const tournamentRefundEngine = onDocumentUpdated(
     if (!before || !after) return;
 
     if (before.status !== "CANCELLED" && after.status === "CANCELLED") {
-      // prevent double refunds
       if (after.refunded === true) return;
 
       const tournamentId = event.params.tournamentId;
       const tournamentRef = db.collection("tournaments").doc(tournamentId);
 
-      const batch = db.batch();
+      const enrollmentsSnapshot = await tournamentRef.collection("enrollments").get();
 
-      // refund players
-      const enrollmentsSnapshot = await tournamentRef
-        .collection("enrollments")
-        .get();
-
-      enrollmentsSnapshot.docs.forEach((doc: FirebaseFirestore.QueryDocumentSnapshot) => {
+      for (const doc of enrollmentsSnapshot.docs) {
         const userId = doc.id;
         const userRef = db.collection("users").doc(userId);
 
-        batch.update(userRef, {
-          merit: FieldValue.increment(after.entranceFee),
+        await db.runTransaction(async (tx) => {
+          const userSnap = await tx.get(userRef);
+          if (!userSnap.exists) return;
+
+          const currentMerit = userSnap.data()?.merit ?? 0;
+          const refundAmount = after.entranceFee;
+          const newBalance = currentMerit + refundAmount;
+
+          tx.update(userRef, {
+            merit: newBalance,
+          });
+
+          const txRef = userRef.collection("meritTransactions").doc();
+          tx.set(txRef, {
+            amount: refundAmount,
+            reason: "REFUND_TOURNAMENT",
+            timestamp: Date.now(),
+            balanceAfter: newBalance,
+          });
+        });
+      }
+
+      const hostRef = db.collection("users").doc(after.creatorId);
+      await db.runTransaction(async (tx) => {
+        const hostSnap = await tx.get(hostRef);
+        if (!hostSnap.exists) return;
+
+        const currentMerit = hostSnap.data()?.merit ?? 0;
+        const refundAmount = after.prizePool;
+        const newBalance = currentMerit + refundAmount;
+
+        tx.update(hostRef, {
+          merit: newBalance,
+        });
+
+        const txRef = hostRef.collection("meritTransactions").doc();
+        tx.set(txRef, {
+          amount: refundAmount,
+          reason: "REFUND_TOURNAMENT",
+          timestamp: Date.now(),
+          balanceAfter: newBalance,
         });
       });
 
-      // refund host
-      const hostRef = db.collection("users").doc(after.creatorId);
-
-      batch.update(hostRef, {
-        merit: FieldValue.increment(after.prizePool),
-      });
-
-      // refunded
-      batch.update(tournamentRef, {
+      await tournamentRef.update({
         refunded: true,
       });
-
-      await batch.commit();
     }
   }
 );

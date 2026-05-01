@@ -78,8 +78,10 @@ export const createUserTournament = onCall(
       const enrollmentDeadline = now + (12 * 60 * 60 * 1000);
       const submissionDeadline = enrollmentDeadline + (24 * 60 * 60 * 1000);
 
+      const newBalance = currentMerit - prizePool;
+
       tx.update(userRef, {
-        merit: currentMerit - prizePool,
+        merit: newBalance,
       });
 
       tx.set(tournamentRef, {
@@ -113,6 +115,14 @@ export const createUserTournament = onCall(
         topicId: null,
         topicName: null,
         isSystemHosted: false,
+      });
+
+      const txRef = userRef.collection("meritTransactions").doc();
+      tx.set(txRef, {
+        amount: -prizePool,
+        reason: "CREATE_TOURNAMENT",
+        timestamp: now,
+        balanceAfter: newBalance,
       });
     });
 

@@ -72,14 +72,25 @@ export const unlockFeedbackExpansion = onCall(
 
       appliedCost = isPhilosopher ? 0 : EXPAND_FEEDBACK_COST;
 
+      const currentMerit = user?.merit ?? 0;
+      let newBalance = currentMerit;
+
       if (appliedCost > 0) {
-        const currentMerit = user?.merit ?? 0;
         if (currentMerit < appliedCost) {
           throw new HttpsError("failed-precondition", "Not enough Merit.");
         }
 
+        newBalance = currentMerit - appliedCost;
         tx.update(userRef, {
-          merit: currentMerit - appliedCost,
+          merit: newBalance,
+        });
+
+        const txRef = userRef.collection("meritTransactions").doc();
+        tx.set(txRef, {
+          amount: -appliedCost,
+          reason: "EXPAND_FEEDBACK",
+          timestamp: Date.now(),
+          balanceAfter: newBalance,
         });
       }
 

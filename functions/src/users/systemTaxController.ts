@@ -38,10 +38,19 @@ export const weeklyTaxProcessor = onSchedule(
       const taxAmount = Math.floor(meritCap * 0.01);
 
       const newMerit = Math.max(0, currentMerit - taxAmount);
+      const actualTax = currentMerit - newMerit;
 
       if (newMerit !== currentMerit) {
         writer.update(doc.ref, {
           merit: newMerit,
+        });
+
+        const txRef = doc.ref.collection("meritTransactions").doc();
+        writer.set(txRef, {
+          amount: -actualTax,
+          reason: "WEEKLY_TAX",
+          timestamp: Date.now(),
+          balanceAfter: newMerit,
         });
       }
     });
