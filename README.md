@@ -3,8 +3,8 @@
 </p>
 <h1 align="center">Inkr8</h1>
  
-<p align="center">
-  <strong>The competitive English writing arena.</strong>
+<p align="center"> 
+  <em>"A good artist can paint with any color; a great writer should write with any word."</em> 
 </p>
 <p align="center">
   <a href="https://play.google.com/store/apps/details?id=com.inkr8">
@@ -17,7 +17,7 @@
 
 ## Content Database
  
-The vocabulary database — words, themes, and on-topic writing prompts used in Inkr8's challenges — is publicly available for reference and community contribution:
+The vocabulary database: words, themes, and on-topic writing prompts used in Inkr8, are publicly available for reference: 
  
 **[Inkr8-Content Repository →](https://github.com/Rnz5/Inkr8-Content)**
  
@@ -30,9 +30,6 @@ Most English learning apps are passive. You memorize words you never use. You re
 There's nowhere online where a non-native English speaker can **write under real constraints, receive honest AI judgment, and compete for visible status** — without it devolving into a pay-to-win game or a "good job, keep it up!" echo chamber (DUOLINGO).
  
 **Inkr8 is the answer.** It forces you to use vocabulary actively, judges your writing without flattery, and gives your skill a public rank that actually means something.
- 
-> *"A good artist can paint with any color; a great writer should write with any word."*
- 
  
 ## What Inkr8 Does
  
@@ -54,11 +51,11 @@ The emotional atmosphere is deliberate: **dark, premium, intellectual, sarcastic
 - Required words that highlight in real time as you type
 **R8 — The AI Evaluator**
 - Powered by OpenAI's GPT-4o mini, running server-side via Firebase Cloud Functions
-- Evaluates craft, not opinion — grammar, coherence, depth, vocabulary, metaphors, structure, and required word usage
+- Evaluates craft, not opinion - grammar, coherence, depth, vocabulary, metaphors, structure, and required word usage
 - Delivers feedback in a sharp, sarcastic voice: direct, useful, never empty praise
 - A score of 90+ is rare. A perfect 100 is nearly unreachable
 **Merit Economy**
-- Merit is earned by writing and competing — it cannot be purchased
+- Merit is earned by writing and competing - it cannot be purchased
 - Spent on ranked entry, tournaments, saving submissions, username changes, and more
 - Subject to a weekly tax, a soft cap, and a slow-release overflow mechanic — it stays meaningful
 **Competitive Structure**
